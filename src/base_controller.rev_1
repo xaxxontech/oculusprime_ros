@@ -1,0 +1,148 @@
+#!/usr/bin/env python
+
+#base_controller rev1 -- solid but no odometry input, horrible speed control
+
+import rospy
+import socketclient
+from geometry_msgs.msg import Twist
+import thread
+from math import radians
+
+# nominalmaxmps = 0
+# nominalmaxrps = 0
+lastlinear = 0
+lastangular = 0
+lastmove = 0
+lastspeed = 0
+checkmove = False
+
+# rostopic pub -r 5 /cmd_vel geometry_msgs/Twist '{linear: {x: 0.1, y: 0, z: 0}, angular: {x: 0, y: 0, z: 0}}'
+# rosrun turtlesim turtle_teleop_key
+
+def callback(data): # event handler for cmd_vel Twist messages
+	global lastmove, checkmove, lastlinear, lastangular, lastspeed
+	lastmove = rospy.get_time()
+	checkmove = True
+	if data.linear.x > 0:  # forward (overrides angular)
+		if not data.linear.x == lastlinear:
+			motorspeed = getMotorSpeedLinear(data.linear.x)
+			if not motorspeed == lastspeed:
+				socketclient.sendString("speed "+str(motorspeed))
+				lastspeed = motorspeed
+			if motorspeed > 0:
+				socketclient.sendString("move forward")
+			lastlinear = data.linear.x
+			lastangular = 0
+		
+	elif data.linear.x < 0: # backward (overrides angular)
+		if not data.linear.x == lastlinear:
+			motorspeed = getMotorSpeedLinear(abs(data.linear.x))
+			if not motorspeed == lastspeed:
+				socketclient.sendString("speed "+str(motorspeed))
+				lastspeed = motorspeed
+			if motorspeed > 0:	
+				socketclient.sendString("move backward")
+			lastlinear = data.linear.x
+			lastangular = 0
+		
+	elif data.angular.z > 0: # left
+		if not data.angular.z == lastangular: 
+			motorspeed = getMotorSpeedAngular(data.angular.z)
+			if not motorspeed == lastspeed:
+				socketclient.sendString("speed "+str(motorspeed))
+				lastspeed = motorspeed
+			if motorspeed > 0:
+				socketclient.sendString("move left")
+			lastangular = data.angular.z
+			lastlinear = 0
+		
+	elif data.angular.z < 0: # right
+		if not data.angular.z == lastangular: 
+			motorspeed = getMotorSpeedAngular(abs(data.angular.z))
+			if not motorspeed == lastspeed:
+				socketclient.sendString("speed "+str(motorspeed))
+				lastspeed = motorspeed
+			if motorspeed > 0:
+				socketclient.sendString("move right")
+			lastangular = data.angular.z
+			lastlinear = 0
+	
+	else: # stop
+		checkmove = False
+		lastangular = 0
+		lastlinear = 0
+		socketclient.sendString("move stop")
+
+
+
+def listener(): # listen for cmd_vel Twist messages
+	rospy.init_node('base_controller', anonymous=False)
+	rospy.Subscriber("cmd_vel", Twist, callback)
+	rospy.Subscriber("turtle1/cmd_vel", Twist, callback) # TODO: testing
+	rospy.spin() 
+    
+def getMotorSpeedLinear(mps): 
+	"""max speed pwm 255 = 0.39m/s
+	min speed pwm 30 = 0.12m/s
+	sysvolts 11.88
+	"""
+	motorspeed = 0
+	maxspeed = 0.39
+	minspeed = 0.12
+	maxpwm = 255
+	minpwm = 30
+	if mps >= maxspeed: 
+		motorspeed = 255
+	elif mps < minspeed:
+		motorspeed = 0
+	else:
+		motorspeed = minpwm + (maxpwm-minpwm)*(mps-minspeed)/(maxspeed-minspeed)
+	return int(motorspeed)
+
+def getMotorSpeedAngular(rps): 
+	"""max speed pwm 255 = 2.15r/s
+	min speed pwm 30 = 0.36r/s
+	sysvolts 11.88
+	"""
+	motorspeed = 0
+	maxspeed = 2.15
+	minspeed = 0.36
+	maxpwm = 255
+	minpwm = 30
+	if mps >= maxspeed: 
+		motorspeed = 255
+	elif mps < minspeed:
+		motorspeed = 0
+	else:
+		motorspeed = minpwm + (maxpwm-minpwm)*(mps-minspeed)/(maxspeed-minspeed)
+	return int(motorspeed)
+
+
+# MAIN
+
+rospy.init_node('base_controller', anonymous=False)
+rospy.Subscriber("cmd_vel", Twist, callback)
+rospy.Subscriber("turtle1/cmd_vel", Twist, callback) # TODO: testing only
+
+# get nominal seconds per meter
+# socketclient.sendString("readsetting onemeterdelay")
+# s = socketclient.waitForReplySearch("<messageclient> setting onemeterdelay")
+# nominalmaxmps = 1000/float(s.split()[3])
+
+# get seconds per 360deg
+# socketclient.sendString("readsetting fullrotationdelay")
+# s = socketclient.waitForReplySearch("<messageclient> setting fullrotationdelay")
+# nominalmaxrps = radians(360000/float(s.split()[3]))
+
+# publish stop if no updates
+cmd_vel = rospy.Publisher('/cmd_vel', Twist)
+while not rospy.is_shutdown():
+	t = rospy.get_time()
+	if checkmove and t - lastmove > 0.5: 
+		cmd_vel.publish(Twist())  #odom node needs this 0,0,0 twist message to allow for deccel
+	rospy.sleep(0.1) 
+
+# stop wheels if necessary on shutdown
+if not lastlinear==0 or not lastangular==0:
+	socketclient.sendString("move stop")
+

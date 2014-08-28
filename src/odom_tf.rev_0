@@ -1,0 +1,99 @@
+#!/usr/bin/env python
+
+"""
+notes:
+-make tcp socket connection with robot java
+-listen for <state> moving true -- if so send ODOMETRY_START command to firmware (via telnet-java)
+	-to clear drift values
+	-separate thread(?)
+-read odo values every n milliseconds, then update odo topic with pose/Twist
+-do not update angular pose when not moving, if so will be vast gyro drift (ie., listem for <state> move stop)
+	-set angular pose change at 0 when not moving
+-if angle changing much more than linear move (ie., detect turn), discard encoder data
+	-would be much easier if knew direction
+	-would be much easier if base_controller threw up direction info to messaging, **<<DO THIS** NO!
+		Just subscribe to Twist messages!
+	 so wouldn't have to read via telnet at all
+if odo running, pass parameter to base_controller, so THAT could send ODOMETRY_START/REPORT COMMANDS..? 
+	-doesn't really matter, since this node has to read odo via telnet anyway
+
+"""
+
+import rospy, tf
+import socketclient
+from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
+
+linearx = 0
+angularz = 0
+allowForSlowDown = -1
+defaultreadinterval = 0.5
+readinterval = defaultreadinterval
+
+def callback(data): # event handler for cmd_vel Twist messages, determine current move commands
+	global linearx, angularz, allowForSlowDown, readinterval
+	if not data.linear.x == 0:  # linear move (overrides angular)
+		if not linearx == data.linear.x:   #  new
+			readinterval = 0  # force last odometry read before clearning 
+			while readinterval == 0:
+				pass 
+
+			linearx = data.linear.x
+			angularz = 0
+			allowForSlowDown = 0
+			socketclient.sendString("odometrystart") # discards any previous gyro drift
+	elif not data.angular.z == 0:   # angular move
+		if not angularz == data.angular.z:  # new
+			readinterval = 0  # force last odometry read before clearning 
+			while readinterval == 0:
+				pass  
+
+			angularz = data.angular.z
+			linearx = 0
+			allowForSlowDown = 0
+			socketclient.sendString("odometrystart") # discards any previous gyro drift
+	elif allowForSlowDown == 0:  # stop, new
+		allowForSlowDown = rospy.get_time() + 1 
+	
+	
+# MAIN
+
+rospy.init_node('odom_tf', anonymous=False)
+rospy.Subscriber("cmd_vel", Twist, callback)
+rospy.Subscriber("turtle1/cmd_vel", Twist, callback) # TODO: testing only
+
+# clear any old odometry data
+socketclient.sendString("odometrystop") 
+socketclient.clearIncoming()
+
+while not rospy.is_shutdown():
+	t = rospy.get_time()
+	while rospy.get_time() < t + readinterval:
+		rospy.sleep(0.005)
+
+	# socketclient.sendString("messageclients ping")
+
+	if allowForSlowDown > 0 and allowForSlowDown < rospy.get_time():
+		allowForSlowDown = 0
+		linearx = 0
+		angularz = 0
+
+	if (not linearx == 0 or not angularz == 0 or allowForSlowDown > 0):
+		socketclient.sendString("odometryreport")
+		distance = 0
+		if not linearx == 0: # ony read wheel encoder if linear move command
+			s = socketclient.waitForReplySearch("<state> distance")
+			distance = float(s.split()[2])/1000
+			if linearx < 0:
+				distance *= -1
+		s = socketclient.waitForReplySearch("<state> angle") # always read angle due to drift
+		angle = float(s.split()[2])
+		
+		print(str(distance)+", "+str(angle))
+		
+		# now broadcast odom, tf
+	
+	
+	readinterval = defaultreadinterval
+
+# TODO: send odometrystop on shutdown in non potentially process locking way

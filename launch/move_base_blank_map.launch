@@ -1,0 +1,9 @@
+<launch>
+  <!-- Launch move_base and load all navigation parameters -->
+  <include file="$(find oculusprime)/launch/move_base.launch" />
+  
+  <!-- Run the map server with a blank map -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find rbx1_nav)/maps/blank_map.yaml" />
+
+
+</launch>

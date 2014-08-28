@@ -1,0 +1,23 @@
+<launch>
+	<param name="robot_description" textfile="$(find oculusprime)/description/oculusprime.urdf" />
+	<node pkg="oculusprime" type="segmented_arc_base_controller.py" name="segmented_arc_base_controller" />
+	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" />
+
+	<node pkg="tf" type="static_transform_publisher" name="base_to_xtion_broadcaster" 
+		args="-0.054 0.02 0.29 0 0 0 /base_link /camera_depth_frame 100" />
+	<!--
+	<node pkg="tf" type="static_transform_publisher" name="odom_map_broadcaster" 
+		args="0 0 0 0 0 0 /map /odom 100" />
+-->
+  
+	<include file="$(find oculusprime)/launch/move_base.launch" />
+	<include file="$(find rbx1_bringup)/launch/fake_laser.launch" />
+	
+	<param name="use_sim_time" value="false" />
+	<arg name="map" default="my_map.yaml" />
+	<node name="map_server" pkg="map_server" type="map_server" args="$(find oculusprime)/maps/$(arg map)"/>
+	<include file="$(find oculusprime)/launch/amcl.launch" />
+	
+</launch>
+
+
