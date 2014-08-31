@@ -1,6 +1,6 @@
 controller_frequency: 3
-recovery_behavior_enabled: false
-clearing_rotation_allowed: false
+recovery_behavior_enabled: true
+clearing_rotation_allowed: true
 
 TrajectoryPlannerROS:
    max_vel_x: 0.3
@@ -15,7 +15,7 @@ TrajectoryPlannerROS:
    acc_lim_th: 3.0 
 
    holonomic_robot: false
-   yaw_goal_tolerance: 0.12 # 0.1 # about 6 degrees
+   yaw_goal_tolerance: 0.15 # 0.1 # about 6 degrees
    xy_goal_tolerance: 0.1  # 10 cm
    latch_xy_goal_tolerance: false
    pdist_scale: 0.8
