@@ -36,5 +36,5 @@ TrajectoryPlannerROS:
    vx_samples: 8
    vy_samples: 0 # zero for a differential drive robot
    vtheta_samples: 20
-   dwa: true
+   dwa: false
    simple_attractor: false
