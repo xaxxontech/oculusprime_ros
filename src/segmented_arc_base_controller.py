@@ -36,7 +36,7 @@ lastpath = 0
 goalpose = False
 
 def pathCallback(data):
-	global targetx, targety, targetth, followpath, lastpath
+	global targetx, targety, targetth, followpath, lastpath, goalpose
 	lastpath = rospy.get_time()
 	goalpose = False
 	followpath = True
@@ -56,15 +56,18 @@ def odomCallback(data):
 	odomth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
 def goalCallback(data):
-	global goalth 
+	global goalth, followpath, lastpath, goalpose 
+	goalpose = False
+	followpath = True
+	lastpath = 0
 	quaternion = ( data.pose.orientation.x, data.pose.orientation.y,
 	data.pose.orientation.z, data.pose.orientation.w )
 	goalth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
 
 def move(ox, oy, oth, tx, ty, tth, gth):
-	# (only move if over min threshold)
-	
+	global followpath, goalpose
+
 	# print "odom: "+str(ox)+", "+str(oy)+", "+str(oth)
 	# print "target: "+str(tx)+", "+str(ty)+", "+str(tth)
 	
@@ -78,12 +81,11 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 		th = math.acos(dx/distance)
 		if dy <0:
 			th = -th
+	elif goalpose:
+		th = gth
 	else:
 		th = tth
 		
-	if goalpose:
-		th = gth
-		distance = 0
 		
 	""" scenarios:
 	current = -170, target = 0 >> move = 170
@@ -148,7 +150,7 @@ while not rospy.is_shutdown():
 		move(odomx, odomy, odomth, targetx, targety, targetth, goalth)
 		nextmove = t+listentime
 		followpath = False
-	if t - lastpath > 3 and not t - lastpath > 15:
+	if t - lastpath > 3:
 		goalpose = True
 		
 cleanup()
