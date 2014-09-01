@@ -38,26 +38,14 @@ TODO: dometry still overshooting linear by couple cm when interrupted by turn
 from math import radians, sin, cos
 import rospy, tf
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Twist
 import socketclient
 
 
 lastupdate = 0
 updateinterval = 0.25
-stopped = True;
 pos = [0.0, 0.0, 0.0]
 before = 0
 now = 0
-
-def callback(data): # event handler for cmd_vel Twist messages
-	global stopped
-	stopped = False
-	# updateinterval = 0.25
-	if data.linear.x == 0 and data.angular.z == 0:  
-		stopped = True
-	# elif data.linear.x == 0 and not data.angular.z == 0:
-		# updateinterval = 0.1
-		
 		
 
 def broadcast(s):
@@ -108,6 +96,10 @@ def broadcast(s):
 	#publish
 	odom_pub.publish(odom)
 
+def cleanup():
+	socketclient.sendString("odometrystop")
+	socketclient.sendString("state stopbetweenmoves false")
+
 
 # MAIN
 
@@ -115,14 +107,15 @@ rospy.init_node('odom_tf', anonymous=False)
 before = rospy.Time.now()
 br = tf.TransformBroadcaster()
 odom_pub = rospy.Publisher('odom', Odometry)
-rospy.Subscriber("cmd_vel", Twist, callback)
-rospy.Subscriber("turtle1/cmd_vel", Twist, callback) # TODO: testing
+rospy.on_shutdown(cleanup)
+socketclient.sendString("odometrystart")
+socketclient.sendString("state stopbetweenmoves true")
 broadcast("* * 0 0".split())
 
 while not rospy.is_shutdown():
 	t = rospy.get_time()
 	
-	if t-lastupdate > updateinterval: # and not stopped:
+	if t-lastupdate > updateinterval: 
 		socketclient.sendString("odometryreport")
 		s = socketclient.waitForReplySearch("<state> distanceangle ")
 		broadcast(s.split())
@@ -135,5 +128,6 @@ while not rospy.is_shutdown():
 			lastupdate = now.to_sec()
 
 # shutdown
+cleanup()
 
 

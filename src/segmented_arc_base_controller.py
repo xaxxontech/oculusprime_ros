@@ -1,52 +1,126 @@
 #!/usr/bin/env python
 
 """
-listen to cmd_vel messages for n seconds, determine endpoint
+listen to /move_base/TrajectoryPlannerROS/local_plan
 use rotate and movedistance commands to get there, repeat
+subscribe to odo so moves relative to current pos
 assumes robot is stopped before running this
 
+rosmsg show nav_msgs/Path
+rosmsg show nav_msgs/Odometry
+rosmsg show geometry_msgs/PoseStamped << is in map frame!!!
+
+consider polling telnet and broadcasting odom from here, to only update odom between moves
+/move_base_simple/goal
 """
 
-# rostopic pub -r 5 /cmd_vel geometry_msgs/Twist '{linear: {x: 0.16, y: 0, z: 0}, angular: {x: 0, y: 0, z: 0}}'
-# rostopic pub -r 5 /cmd_vel geometry_msgs/Twist '{linear: {x: 0.15, y: 0, z: 0}, angular: {x: 0, y: 0, z: -0.5}}'
-# rostopic pub -r 5 /cmd_vel geometry_msgs/Twist '{linear: {x: 0, y: 0, z: 0}, angular: {x: 0, y: 0, z: -0.8}}'
-# rosrun turtlesim turtle_teleop_key
-
-import rospy
+import rospy, tf
 import socketclient
-from geometry_msgs.msg import Twist
-from math import degrees
+from nav_msgs.msg import Odometry
+import math
+from nav_msgs.msg import Path
+from geometry_msgs.msg import PoseStamped
 
-distx = 0
-angz = 0
-lastcmdvel = 0
-lastmove = 0
-listentime = 2.5 # constant, seconds
+listentime = 1.5 # constant, seconds
+nextmove = 0
+odomx = 0
+odomy = 0
+odomth = 0
+targetx = 0
+targety = 0
+targetth = 0
+goalx = 0
+goaly = 0
+goalth = 0
+atgoal = False
 
-def twistCallback(data): # event handler for cmd_vel Twist messages
-	global distx, angz, lastmove, lastcmdvel
-	t = rospy.get_time()
-	if lastcmdvel == 0:
-		lastcmdvel = t
-		return
+def pathCallback(data):
+	global targetx, targety, targetth
+	p = data.poses[len(data.poses)-1] # get latest pose
+	targetx = p.pose.position.x
+	targety = p.pose.position.y
+	quaternion = ( p.pose.orientation.x, p.pose.orientation.y,
+	p.pose.orientation.z, p.pose.orientation.w )
+	targetth = tf.transformations.euler_from_quaternion(quaternion)[2]
+
+def odomCallback(data):
+	global odomx, odomy, odomth
+	odomx = data.pose.pose.position.x
+	odomy = data.pose.pose.position.y
+	quaternion = ( data.pose.pose.orientation.x, data.pose.pose.orientation.y,
+	data.pose.pose.orientation.z, data.pose.pose.orientation.w )
+	odomth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
-	distx += data.linear.x * (t-lastcmdvel)
-	angz += data.angular.z * (t-lastcmdvel)
-	lastcmdvel = t
+def goalCallback(data):
+	global goalx, goaly, goalth
+	goalx = data.pose.position.x
+	goaly = data.pose.position.y
+	quaternion = ( data.pose.orientation.x, data.pose.orientation.y,
+	data.pose.orientation.z, data.pose.orientation.w )
+	goalth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
-def move(x, z):
-	if z > 0:
-		socketclient.sendString("left "+str(abs(int(degrees(z)))) )
+
+def move(ox, oy, oth, tx, ty, tth, gx, gy, gth):
+	# (only move if over min threshold)
+	
+	# print "odom: "+str(ox)+", "+str(oy)+", "+str(oth)
+	# print "target: "+str(tx)+", "+str(ty)+", "+str(tth)
+	
+	dx = tx - ox
+	dy = ty - oy	
+	distance = math.sqrt( pow(dx,2) + pow(dy,2) )
+	if distance > 0:
+		th = math.acos(dx/distance)
+		if dy <0:
+			th = -th
+	else:
+		th = tth
+		
+	# if abs(ox-gx)<0.15 and abs(oy-gy)<0.15:
+		# distance = 0
+		# th = tth
+
+	""" scenarios:
+	current = -170, target = 0 >> move = 170
+	current = 170, target = -170 >> move = 20 (=360+t-c)
+	current = 50, target = -90 >> move = -140  (=t-c)
+	current = 0, target = 180 >> move = -180 or 180 (=t-c)
+	current = -10, target = 170 >> move = -180 or 180  (=t-c)
+	current = -10, target = 175 >> move = -175 (=-360+t-c)
+	current = 50, target == 20 >> move = -30  (=t-c)
+	current = -50, target = -10 >> move = 40  (=t-c)
+	current = 1, target = -1
+	curent = 185, target = 0
+	"""
+	
+	dth = th - oth
+	if dth > math.pi:
+		dth = -math.pi*2 + dth
+	elif dth < -math.pi:
+		dth = math.pi*2 + dth
+		
+	# set minimums	
+	if distance > 0 and distance < 0.05:
+		distance = 0.05
+	# minimum rotate is currently 8 degrees! (fix in firmware...)
+	if dth < 0.07 and dth > -0.07:
+		dth = 0
+	elif dth >= 0.07 and dth < 0.14:
+		dth = 0.14
+	elif dth <= -0.07 and dth > -0.14:
+		dth = -0.14
+	
+	# print "move: "+str(distance)+", "+str(dth)+", "+str(th)
+	
+	if dth > 0:
+		socketclient.sendString("left "+str(int(math.degrees(dth))) )
 		socketclient.waitForReplySearch("<state> direction stop")
-	elif z < 0:
-		socketclient.sendString("right "+str(abs(int(degrees(z)))) )
+	elif dth < 0:
+		socketclient.sendString("right "+str(abs(int(math.degrees(dth)))) )
 		socketclient.waitForReplySearch("<state> direction stop")
 
-	if x > 0:
-		socketclient.sendString("forward "+str(abs(x)))
-		socketclient.waitForReplySearch("<state> direction stop")
-	elif x < 0:
-		socketclient.sendString("backward "+str(abs(x)))
+	if distance > 0:
+		socketclient.sendString("forward "+str(distance))
 		socketclient.waitForReplySearch("<state> direction stop")
 	
 def cleanup():
@@ -57,22 +131,19 @@ def cleanup():
 # MAIN
 
 rospy.init_node('base_controller', anonymous=False)
-rospy.Subscriber("cmd_vel", Twist, twistCallback)
+rospy.Subscriber("move_base/TrajectoryPlannerROS/local_plan", Path, pathCallback)
+rospy.Subscriber("odom", Odometry, odomCallback)
+# rospy.Subscriber("move_base_simple/goal", PoseStamped, goalCallback)
 rospy.on_shutdown(cleanup)
-socketclient.sendString("odometrystart")
-socketclient.sendString("state stopbetweenmoves true")
 
-cmd_vel = rospy.Publisher('/cmd_vel', Twist)
 
 while not rospy.is_shutdown():
 	t = rospy.get_time()
-	if t - lastmove >= listentime:
-		x = distx
-		z = angz
-		distx = 0
-		angz = 0
-		lastmove = t
-		move(x, z)
-
+	if t >= nextmove and not atgoal:
+		move(odomx, odomy, odomth, targetx, targety, targetth, goalx, goaly, goalth)
+		nextmove = t+listentime
+	# atgoal = False
+	# if abs(odomx - goalx) < 0.15 and abs(odomy - goaly < 0.15) and abs(odomth - goalth < 0.2):
+		# atgoal = True
 
 cleanup()
