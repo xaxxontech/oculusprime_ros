@@ -11,7 +11,8 @@ rosmsg show nav_msgs/Odometry
 rosmsg show geometry_msgs/PoseStamped << is in map frame!!!
 
 consider polling telnet and broadcasting odom from here, to only update odom between moves
-/move_base_simple/goal
+/move_base/status  3 = goal reached, 1= accepted (read last in list)
+rosmsg show actionlib_msgs/GoalStatusArray
 """
 
 import rospy, tf
@@ -20,6 +21,7 @@ from nav_msgs.msg import Odometry
 import math
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
+from actionlib_msgs.msg import GoalStatusArray
 
 listentime = 1.5 # constant, seconds
 nextmove = 0
@@ -31,9 +33,10 @@ targety = 0
 targetth = 0
 followpath = False
 goalth = 0 
-minturn = 0.19
+minturn = 0.21
 lastpath = 0
 goalpose = False
+goalseek = False
 
 def pathCallback(data):
 	global targetx, targety, targetth, followpath, lastpath, goalpose
@@ -64,6 +67,14 @@ def goalCallback(data):
 	data.pose.orientation.z, data.pose.orientation.w )
 	goalth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
+def goalStatusCallback(data):
+	global goalseek
+	goalseek = False
+	if len(data.status_list) == 0:
+		return
+	status = data.status_list[len(data.status_list)-1] # get latest status
+	if status.status == 1:
+		goalseek = True
 
 def move(ox, oy, oth, tx, ty, tth, gth):
 	global followpath, goalpose
@@ -142,11 +153,12 @@ rospy.init_node('base_controller', anonymous=False)
 rospy.Subscriber("move_base/TrajectoryPlannerROS/local_plan", Path, pathCallback)
 rospy.Subscriber("odom", Odometry, odomCallback)
 rospy.Subscriber("move_base_simple/goal", PoseStamped, goalCallback)
+rospy.Subscriber("move_base/status", GoalStatusArray, goalStatusCallback)
 rospy.on_shutdown(cleanup)
 
 while not rospy.is_shutdown():
 	t = rospy.get_time()
-	if t >= nextmove:
+	if t >= nextmove and goalseek:
 		move(odomx, odomy, odomth, targetx, targety, targetth, goalth)
 		nextmove = t+listentime
 		followpath = False
