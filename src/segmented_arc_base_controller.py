@@ -29,13 +29,17 @@ odomth = 0
 targetx = 0
 targety = 0
 targetth = 0
-goalx = 0
-goaly = 0
-goalth = 0
-atgoal = False
+followpath = False
+goalth = 0 
+minturn = 0.19
+lastpath = 0
+goalpose = False
 
 def pathCallback(data):
-	global targetx, targety, targetth
+	global targetx, targety, targetth, followpath, lastpath
+	lastpath = rospy.get_time()
+	goalpose = False
+	followpath = True
 	p = data.poses[len(data.poses)-1] # get latest pose
 	targetx = p.pose.position.x
 	targety = p.pose.position.y
@@ -52,23 +56,24 @@ def odomCallback(data):
 	odomth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
 def goalCallback(data):
-	global goalx, goaly, goalth
-	goalx = data.pose.position.x
-	goaly = data.pose.position.y
+	global goalth 
 	quaternion = ( data.pose.orientation.x, data.pose.orientation.y,
 	data.pose.orientation.z, data.pose.orientation.w )
 	goalth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
 
-def move(ox, oy, oth, tx, ty, tth, gx, gy, gth):
+def move(ox, oy, oth, tx, ty, tth, gth):
 	# (only move if over min threshold)
 	
 	# print "odom: "+str(ox)+", "+str(oy)+", "+str(oth)
 	# print "target: "+str(tx)+", "+str(ty)+", "+str(tth)
 	
-	dx = tx - ox
-	dy = ty - oy	
-	distance = math.sqrt( pow(dx,2) + pow(dy,2) )
+	distance = 0
+	if followpath:
+		dx = tx - ox
+		dy = ty - oy	
+		distance = math.sqrt( pow(dx,2) + pow(dy,2) )
+	
 	if distance > 0:
 		th = math.acos(dx/distance)
 		if dy <0:
@@ -76,10 +81,10 @@ def move(ox, oy, oth, tx, ty, tth, gx, gy, gth):
 	else:
 		th = tth
 		
-	# if abs(ox-gx)<0.15 and abs(oy-gy)<0.15:
-		# distance = 0
-		# th = tth
-
+	if goalpose:
+		th = gth
+		distance = 0
+		
 	""" scenarios:
 	current = -170, target = 0 >> move = 170
 	current = 170, target = -170 >> move = 20 (=360+t-c)
@@ -102,13 +107,13 @@ def move(ox, oy, oth, tx, ty, tth, gx, gy, gth):
 	# set minimums	
 	if distance > 0 and distance < 0.05:
 		distance = 0.05
-	# minimum rotate is currently 8 degrees! (fix in firmware...)
-	if dth < 0.07 and dth > -0.07:
+	# minimum rotate is currently 8 degrees! (fix in firmware...) OR turn slower
+	if dth < minturn*0.4 and dth > -minturn*0.4:
 		dth = 0
-	elif dth >= 0.07 and dth < 0.14:
-		dth = 0.14
-	elif dth <= -0.07 and dth > -0.14:
-		dth = -0.14
+	elif dth >= minturn*0.4 and dth < minturn:
+		dth = minturn
+	elif dth <= -minturn*0.4 and dth > -minturn:
+		dth = -minturn
 	
 	# print "move: "+str(distance)+", "+str(dth)+", "+str(th)
 	
@@ -128,22 +133,22 @@ def cleanup():
 	socketclient.sendString("state stopbetweenmoves false")
 	socketclient.sendString("move stop")
 
+
 # MAIN
 
 rospy.init_node('base_controller', anonymous=False)
 rospy.Subscriber("move_base/TrajectoryPlannerROS/local_plan", Path, pathCallback)
 rospy.Subscriber("odom", Odometry, odomCallback)
-# rospy.Subscriber("move_base_simple/goal", PoseStamped, goalCallback)
+rospy.Subscriber("move_base_simple/goal", PoseStamped, goalCallback)
 rospy.on_shutdown(cleanup)
-
 
 while not rospy.is_shutdown():
 	t = rospy.get_time()
-	if t >= nextmove and not atgoal:
-		move(odomx, odomy, odomth, targetx, targety, targetth, goalx, goaly, goalth)
+	if t >= nextmove:
+		move(odomx, odomy, odomth, targetx, targety, targetth, goalth)
 		nextmove = t+listentime
-	# atgoal = False
-	# if abs(odomx - goalx) < 0.15 and abs(odomy - goaly < 0.15) and abs(odomth - goalth < 0.2):
-		# atgoal = True
-
+		followpath = False
+	if t - lastpath > 3 and not t - lastpath > 15:
+		goalpose = True
+		
 cleanup()
