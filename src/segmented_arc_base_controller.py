@@ -33,10 +33,14 @@ targety = 0
 targetth = 0
 followpath = False
 goalth = 0 
-minturn = 0.21
+minturn = 0.18 # 0.21 minimum for pwm 255
 lastpath = 0
 goalpose = False
 goalseek = False
+linearspeed = 150
+secondspermeter = 3.2 #float
+turnspeed = 100
+secondspertwopi = 3.8
 
 def pathCallback(data):
 	global targetx, targety, targetth, followpath, lastpath, goalpose
@@ -59,10 +63,13 @@ def odomCallback(data):
 	odomth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
 def goalCallback(data):
-	global goalth, followpath, lastpath, goalpose 
+	global goalth, followpath, lastpath, goalpose, odomx, odomy, odomth, targetx, targety, targetth
 	goalpose = False
 	followpath = True
 	lastpath = 0
+	targetx = odomx
+	targety = odomy
+	targetth = odomth
 	quaternion = ( data.pose.orientation.x, data.pose.orientation.y,
 	data.pose.orientation.z, data.pose.orientation.w )
 	goalth = tf.transformations.euler_from_quaternion(quaternion)[2]
@@ -96,20 +103,6 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 		th = gth
 	else:
 		th = tth
-		
-		
-	""" scenarios:
-	current = -170, target = 0 >> move = 170
-	current = 170, target = -170 >> move = 20 (=360+t-c)
-	current = 50, target = -90 >> move = -140  (=t-c)
-	current = 0, target = 180 >> move = -180 or 180 (=t-c)
-	current = -10, target = 170 >> move = -180 or 180  (=t-c)
-	current = -10, target = 175 >> move = -175 (=-360+t-c)
-	current = 50, target == 20 >> move = -30  (=t-c)
-	current = -50, target = -10 >> move = 40  (=t-c)
-	current = 1, target = -1
-	curent = 185, target = 0
-	"""
 	
 	dth = th - oth
 	if dth > math.pi:
@@ -117,28 +110,57 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 	elif dth < -math.pi:
 		dth = math.pi*2 + dth
 		
-	# set minimums	
+	# force minimums	
 	if distance > 0 and distance < 0.05:
 		distance = 0.05
 	# minimum rotate is currently 8 degrees! (fix in firmware...) OR turn slower
-	if dth < minturn*0.4 and dth > -minturn*0.4:
+
+	# supposed to reduce zig zagging
+	if dth < minturn*0.2 and dth > -minturn*0.2:
 		dth = 0
-	elif dth >= minturn*0.4 and dth < minturn:
+	elif dth >= minturn*0.2 and dth < minturn:
 		dth = minturn
-	elif dth <= -minturn*0.4 and dth > -minturn:
+	elif dth <= -minturn*0.2 and dth > -minturn:
 		dth = -minturn
+		
+	# if th = tth then should be no minimum cutoff to zero
+	# if dth > 0 and dth < minturn:
+		# dth = minturn
+	# elif dth < 0 and dth > -minturn:
+		# dth = -minturn
 	
 	# print "move: "+str(distance)+", "+str(dth)+", "+str(th)
-	
+
+	# if dth > 0:
+		# socketclient.sendString("left "+str(int(math.degrees(dth))) )
+		# socketclient.waitForReplySearch("<state> direction stop")
+	# elif dth < 0:
+		# socketclient.sendString("right "+str(abs(int(math.degrees(dth)))) )
+		# socketclient.waitForReplySearch("<state> direction stop")
+# 
+	# if distance > 0:
+		# socketclient.sendString("forward "+str(distance))
+		# socketclient.waitForReplySearch("<state> direction stop")
+
+
 	if dth > 0:
-		socketclient.sendString("left "+str(int(math.degrees(dth))) )
+		socketclient.sendString("speed "+str(turnspeed) )
+		socketclient.sendString("move left")
+		rospy.sleep(dth/(2.0*math.pi) * secondspertwopi)
+		socketclient.sendString("move stop")
 		socketclient.waitForReplySearch("<state> direction stop")
 	elif dth < 0:
-		socketclient.sendString("right "+str(abs(int(math.degrees(dth)))) )
+		socketclient.sendString("speed "+str(turnspeed) )
+		socketclient.sendString("move right")
+		rospy.sleep(-dth/(2.0*math.pi) * secondspertwopi)
+		socketclient.sendString("move stop")
 		socketclient.waitForReplySearch("<state> direction stop")
 
 	if distance > 0:
-		socketclient.sendString("forward "+str(distance))
+		socketclient.sendString("speed "+str(linearspeed) )
+		socketclient.sendString("move forward")
+		rospy.sleep(distance*secondspermeter)
+		socketclient.sendString("move stop")
 		socketclient.waitForReplySearch("<state> direction stop")
 	
 def cleanup():
