@@ -13,6 +13,15 @@ rosmsg show geometry_msgs/PoseStamped << is in map frame!!!
 consider polling telnet and broadcasting odom from here, to only update odom between moves
 /move_base/status  3 = goal reached, 1= accepted (read last in list)
 rosmsg show actionlib_msgs/GoalStatusArray
+
+adding initial pose to goal pose:
+1st test, initial poseth -90deg: solution would be just ot add initial pose to goal pose
+	gth = gth + ith
+	180 = 180 + (-90)
+	if dth > math.pi:
+		dth = -math.pi*2 + dth
+	elif dth < -math.pi:
+		dth = math.pi*2 + dth
 """
 
 import rospy, tf
@@ -20,7 +29,7 @@ import socketclient
 from nav_msgs.msg import Odometry
 import math
 from nav_msgs.msg import Path
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 from actionlib_msgs.msg import GoalStatusArray
 
 listentime = 1.5 # constant, seconds
@@ -33,7 +42,7 @@ targety = 0
 targetth = 0
 followpath = False
 goalth = 0 
-minturn = 0.18 # 0.21 minimum for pwm 255
+minturn = math.radians(6) # 0.21 minimum for pwm 255
 lastpath = 0
 goalpose = False
 goalseek = False
@@ -41,6 +50,8 @@ linearspeed = 150
 secondspermeter = 3.2 #float
 turnspeed = 100
 secondspertwopi = 3.8
+initth = 0
+initgoalth = 0
 
 def pathCallback(data):
 	global targetx, targety, targetth, followpath, lastpath, goalpose
@@ -63,16 +74,21 @@ def odomCallback(data):
 	odomth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
 def goalCallback(data):
-	global goalth, followpath, lastpath, goalpose, odomx, odomy, odomth, targetx, targety, targetth
+	global goalth, followpath, lastpath, goalpose, odomx, odomy, targetx, targety, initth, targetth
 	goalpose = False
 	followpath = True
 	lastpath = 0
 	targetx = odomx
 	targety = odomy
-	targetth = odomth
+	targetth = goalth
 	quaternion = ( data.pose.orientation.x, data.pose.orientation.y,
 	data.pose.orientation.z, data.pose.orientation.w )
 	goalth = tf.transformations.euler_from_quaternion(quaternion)[2]
+	goalth -= initth
+	if goalth > math.pi:
+		goalth = -math.pi*2 + goalth
+	elif goalth < -math.pi:
+		goalth = math.pi*2 + goalth
 	
 def goalStatusCallback(data):
 	global goalseek
@@ -82,6 +98,23 @@ def goalStatusCallback(data):
 	status = data.status_list[len(data.status_list)-1] # get latest status
 	if status.status == 1:
 		goalseek = True
+		
+def initialposeCallback(data):
+	global initth
+	quaternion = ( data.pose.pose.orientation.x, data.pose.pose.orientation.y,
+	data.pose.pose.orientation.z, data.pose.pose.orientation.w )
+	initth = tf.transformations.euler_from_quaternion(quaternion)[2]
+
+# def amclposeCallback(data):
+	# global goalth, initgoalth
+	# quaternion = ( data.pose.pose.orientation.x, data.pose.pose.orientation.y,
+	# data.pose.pose.orientation.z, data.pose.pose.orientation.w )
+	# amclth = tf.transformations.euler_from_quaternion(quaternion)[2]
+	# goalth = initgoalth - amclth
+	# if goalth > math.pi:
+		# goalth = -math.pi*2 + goalth
+	# elif goalth < -math.pi:
+		# goalth = math.pi*2 + goalth
 
 def move(ox, oy, oth, tx, ty, tth, gth):
 	global followpath, goalpose
@@ -103,6 +136,10 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 		th = gth
 	else:
 		th = tth
+
+	#if goalpose:
+		#th = gth
+		#distance = 0
 	
 	dth = th - oth
 	if dth > math.pi:
@@ -113,34 +150,14 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 	# force minimums	
 	if distance > 0 and distance < 0.05:
 		distance = 0.05
-	# minimum rotate is currently 8 degrees! (fix in firmware...) OR turn slower
 
 	# supposed to reduce zig zagging
-	if dth < minturn*0.2 and dth > -minturn*0.2:
+	if dth < minturn*0.3 and dth > -minturn*0.3:
 		dth = 0
-	elif dth >= minturn*0.2 and dth < minturn:
+	elif dth >= minturn*0.3 and dth < minturn:
 		dth = minturn
-	elif dth <= -minturn*0.2 and dth > -minturn:
+	elif dth <= -minturn*0.3 and dth > -minturn:
 		dth = -minturn
-		
-	# if th = tth then should be no minimum cutoff to zero
-	# if dth > 0 and dth < minturn:
-		# dth = minturn
-	# elif dth < 0 and dth > -minturn:
-		# dth = -minturn
-	
-	# print "move: "+str(distance)+", "+str(dth)+", "+str(th)
-
-	# if dth > 0:
-		# socketclient.sendString("left "+str(int(math.degrees(dth))) )
-		# socketclient.waitForReplySearch("<state> direction stop")
-	# elif dth < 0:
-		# socketclient.sendString("right "+str(abs(int(math.degrees(dth)))) )
-		# socketclient.waitForReplySearch("<state> direction stop")
-# 
-	# if distance > 0:
-		# socketclient.sendString("forward "+str(distance))
-		# socketclient.waitForReplySearch("<state> direction stop")
 
 
 	if dth > 0:
@@ -176,6 +193,8 @@ rospy.Subscriber("move_base/TrajectoryPlannerROS/local_plan", Path, pathCallback
 rospy.Subscriber("odom", Odometry, odomCallback)
 rospy.Subscriber("move_base_simple/goal", PoseStamped, goalCallback)
 rospy.Subscriber("move_base/status", GoalStatusArray, goalStatusCallback)
+rospy.Subscriber("initialpose", PoseWithCovarianceStamped, initialposeCallback)
+# rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, amclposeCallback)
 rospy.on_shutdown(cleanup)
 
 while not rospy.is_shutdown():
