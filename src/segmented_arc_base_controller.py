@@ -22,6 +22,7 @@ adding initial pose to goal pose:
 		dth = -math.pi*2 + dth
 	elif dth < -math.pi:
 		dth = math.pi*2 + dth
+^^ works but not if odom gets whacked - need to use odom/map tf and ADD to goal pose diff
 """
 
 import rospy, tf
@@ -29,7 +30,7 @@ import socketclient
 from nav_msgs.msg import Odometry
 import math
 from nav_msgs.msg import Path
-from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseStamped #, PoseWithCovarianceStamped
 from actionlib_msgs.msg import GoalStatusArray
 
 listentime = 1.5 # constant, seconds
@@ -51,7 +52,8 @@ secondspermeter = 3.2 #float
 turnspeed = 100
 secondspertwopi = 3.8
 initth = 0
-initgoalth = 0
+#initgoalth = 0
+tfth = 0
 
 def pathCallback(data):
 	global targetx, targety, targetth, followpath, lastpath, goalpose
@@ -74,17 +76,23 @@ def odomCallback(data):
 	odomth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
 def goalCallback(data):
-	global goalth, followpath, lastpath, goalpose, odomx, odomy, targetx, targety, initth, targetth
+	global goalth, followpath, lastpath, goalpose, odomx, odomy, targetx, targety, targetth, tfth 
 	goalpose = False
 	followpath = True
 	lastpath = 0
 	targetx = odomx
 	targety = odomy
-	targetth = goalth
+	
+	targetth = goalth -tfth
+	if targetth > math.pi:
+		targetth = -math.pi*2 + targetth
+	elif targetth < -math.pi:
+		targetth = math.pi*2 + targetth
+		
 	quaternion = ( data.pose.orientation.x, data.pose.orientation.y,
 	data.pose.orientation.z, data.pose.orientation.w )
 	goalth = tf.transformations.euler_from_quaternion(quaternion)[2]
-	goalth -= initth
+	# goalth -= tfth
 	if goalth > math.pi:
 		goalth = -math.pi*2 + goalth
 	elif goalth < -math.pi:
@@ -99,11 +107,11 @@ def goalStatusCallback(data):
 	if status.status == 1:
 		goalseek = True
 		
-def initialposeCallback(data):
-	global initth
-	quaternion = ( data.pose.pose.orientation.x, data.pose.pose.orientation.y,
-	data.pose.pose.orientation.z, data.pose.pose.orientation.w )
-	initth = tf.transformations.euler_from_quaternion(quaternion)[2]
+# def initialposeCallback(data):
+	# global initth
+	# quaternion = ( data.pose.pose.orientation.x, data.pose.pose.orientation.y,
+	# data.pose.pose.orientation.z, data.pose.pose.orientation.w )
+	# initth = tf.transformations.euler_from_quaternion(quaternion)[2]
 
 # def amclposeCallback(data):
 	# global goalth, initgoalth
@@ -117,7 +125,7 @@ def initialposeCallback(data):
 		# goalth = math.pi*2 + goalth
 
 def move(ox, oy, oth, tx, ty, tth, gth):
-	global followpath, goalpose
+	global followpath, goalpose, tfth
 
 	# print "odom: "+str(ox)+", "+str(oy)+", "+str(oth)
 	# print "target: "+str(tx)+", "+str(ty)+", "+str(tth)
@@ -133,7 +141,7 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 		if dy <0:
 			th = -th
 	elif goalpose:
-		th = gth
+		th = gth - tfth
 	else:
 		th = tth
 
@@ -193,9 +201,10 @@ rospy.Subscriber("move_base/TrajectoryPlannerROS/local_plan", Path, pathCallback
 rospy.Subscriber("odom", Odometry, odomCallback)
 rospy.Subscriber("move_base_simple/goal", PoseStamped, goalCallback)
 rospy.Subscriber("move_base/status", GoalStatusArray, goalStatusCallback)
-rospy.Subscriber("initialpose", PoseWithCovarianceStamped, initialposeCallback)
+# rospy.Subscriber("initialpose", PoseWithCovarianceStamped, initialposeCallback)
 # rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, amclposeCallback)
 rospy.on_shutdown(cleanup)
+listener = tf.TransformListener()
 
 while not rospy.is_shutdown():
 	t = rospy.get_time()
@@ -203,7 +212,16 @@ while not rospy.is_shutdown():
 		move(odomx, odomy, odomth, targetx, targety, targetth, goalth)
 		nextmove = t+listentime
 		followpath = False
+	
 	if t - lastpath > 3:
 		goalpose = True
+	
+	try:
+		(trans,rot) = listener.lookupTransform('/map', '/odom', rospy.Time(0))
+	except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+		continue		
+	#tfth = 4 * math.atan2(trans[1], trans[0])
+	quaternion = (rot[0], rot[1], rot[2], rot[3])
+	tfth = tf.transformations.euler_from_quaternion(quaternion)[2]
 		
 cleanup()

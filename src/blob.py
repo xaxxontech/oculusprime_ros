@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import rospy, tf
+import rospy, tf, math
 from nav_msgs.msg import Odometry
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
@@ -66,7 +66,7 @@ def amclposeCallback(data):
 	amclth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
 def dump():
-	global odomth, targetth, goalth, goalstatus, amclth, initposeth
+	global odomth, targetth, goalth, goalstatus, amclth, initposeth, tfth
 	print "oth: "+str(odomth)+", tth: "+str(targetth)+", gth: "+str(goalth)+", gs: " \
 		+str(goalstatus)+", ith: "+str(initposeth)+", ath: "+str(amclth)+", tfth: "+str(tfth)
 
@@ -83,8 +83,15 @@ listener = tf.TransformListener()
 
 rate = rospy.Rate(10.0)
 while not rospy.is_shutdown():
-	(trans,rot) = listener.lookupTransform('/map', '/odom', rospy.Time(0))
-	tfth = 4 * math.atan2(trans[1], trans[0])
+	try:
+		(trans,rot) = listener.lookupTransform('/map', '/odom', rospy.Time(0))
+	except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+		continue
+		
+	#tfth = 4 * math.atan2(trans[1], trans[0])
+	quaternion = (rot[0], rot[1], rot[2], rot[3])
+	tfth = tf.transformations.euler_from_quaternion(quaternion)[2]
+
 	rate.sleep()
 	
 
