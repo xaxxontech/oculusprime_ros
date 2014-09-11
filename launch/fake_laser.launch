@@ -1,6 +1,7 @@
 <launch>
   <!-- Launch the OpenNI drivers -->
-  <include file="$(find oculusprime)/launch/openni_driver.launch" />
+  <include file="$(find oculusprime)/launch/openni_driver.launch" /> 
+   <!-- <include file="$(find openni2_launch)/launch/openni2.launch" /> --> 
 
   <!-- Run the depthimage_to_laserscan node -->
   <node pkg="depthimage_to_laserscan" type="depthimage_to_laserscan" name="depthimage_to_laserscan" output="screen">
