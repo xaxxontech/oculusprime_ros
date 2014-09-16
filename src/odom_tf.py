@@ -67,7 +67,7 @@ def broadcast(s):
 	br.sendTransform((pos[0], pos[1], 0), odom_quat, now, "base_link","odom")
 	# future
 	# quat = tf.transformations.quaternion_from_euler(0, 0, 0)
-	# br.sendTransform((-0.054, -0.02, 0.29), quat, now, "camera_depth_frame", "base_link")
+	# br.sendTransform((-0.054, 0.048, 0.29), quat, now, "camera_depth_frame", "base_link")
 	# br.sendTransform((0, 0, 0), quat, now, "odom", "map")
 	
 	# odom
@@ -106,7 +106,7 @@ def cleanup():
 rospy.init_node('odom_tf', anonymous=False)
 before = rospy.Time.now()
 br = tf.TransformBroadcaster()
-odom_pub = rospy.Publisher('odom', Odometry)
+odom_pub = rospy.Publisher('odom', Odometry, queue_size=10)
 rospy.on_shutdown(cleanup)
 socketclient.sendString("odometrystart")
 socketclient.sendString("state stopbetweenmoves true")
@@ -129,5 +129,4 @@ while not rospy.is_shutdown():
 
 # shutdown
 cleanup()
-
 
