@@ -1,5 +1,5 @@
 #! /bin/bash
 
-#rosrun rviz rviz -d `rospack find oculusprime`/testing.rviz &
-rosrun rviz rviz -d `rospack find oculusprime`/nav_test.rviz
+rosrun rviz rviz -d `rospack find oculusprime`/dwa_testing.rviz 
+#rosrun rviz rviz -d `rospack find oculusprime`/nav_test.rviz
 
