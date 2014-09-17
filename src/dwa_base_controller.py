@@ -36,10 +36,6 @@ initturn = False
 
 def pathCallback(data):
 	global targetx, targety, targetth, followpath, lastpath, goalpose
-	global initurn
-	
-	if initturn:
-		return
 		
 	lastpath = rospy.get_time()
 	goalpose = False
@@ -198,12 +194,12 @@ listener = tf.TransformListener()
 while not rospy.is_shutdown():
 	t = rospy.get_time()
 	
-	if t >= nextmove and goalseek and not initturn:
-
-		move(odomx, odomy, odomth, targetx, targety, targetth, goalth)
+	if t >= nextmove:
 		nextmove = t + listentime
 		# nextmove = rospy.get_time()+listentime
-		followpath = False
+		if goalseek and not initturn:
+			move(odomx, odomy, odomth, targetx, targety, targetth, goalth)
+			followpath = False
 	
 	if t - lastpath > 3:
 		goalpose = True
