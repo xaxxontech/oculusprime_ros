@@ -5,4 +5,4 @@ global_costmap:
    publish_frequency: 0.5
    static_map: true
    transform_tolerance: 0.5
-   map_type: costmap
+   # map_type: costmap

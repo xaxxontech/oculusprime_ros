@@ -8,7 +8,7 @@ from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped #, PoseWithCovarianceStamped
 from actionlib_msgs.msg import GoalStatusArray
 
-listentime = 1.5 # constant, seconds
+listentime = 0.9 # magic constant, seconds
 nextmove = 0
 odomx = 0
 odomy = 0
@@ -17,7 +17,7 @@ targetx = 0
 targety = 0
 targetth = 0
 followpath = False
-goalth = None 
+goalth = 0 
 minturn = math.radians(6) # 0.21 minimum for pwm 255
 lastpath = 0
 goalpose = False
@@ -32,6 +32,7 @@ tfth = 0
 
 def pathCallback(data):
 	global targetx, targety, targetth, followpath, lastpath, goalpose
+	
 	lastpath = rospy.get_time()
 	goalpose = False
 	followpath = True
@@ -52,29 +53,27 @@ def odomCallback(data):
 	
 def goalCallback(data):
 	global goalth, followpath, lastpath, goalpose, odomx, odomy, odomth, targetx, targety, targetth, tfth
-	goalpose = False
-	followpath = True
-	lastpath = 0
 
 	targetx = odomx
 	targety = odomy
-	if goalth == None: # initialize
-		targetth = odomth # + tfth
-	# else:
-		# targetth = goalth - tfth
-		if targetth > math.pi:
-			targetth = -math.pi*2 + targetth
-		elif targetth < -math.pi:
-			targetth = math.pi*2 + targetth
+	
+	if goalpose:
+		targetth = goalth # - tfth
+	else:
+		targetth = odomth  # + tfth	 
+		
+	# if targetth > math.pi:
+		# targetth = -math.pi*2 + targetth
+	# elif targetth < -math.pi:
+		# targetth = math.pi*2 + targetth
 		
 	quaternion = ( data.pose.orientation.x, data.pose.orientation.y,
 	data.pose.orientation.z, data.pose.orientation.w )
 	goalth = tf.transformations.euler_from_quaternion(quaternion)[2]
-	# goalth -= tfth
-	# if goalth > math.pi:
-		# goalth = -math.pi*2 + goalth
-	# elif goalth < -math.pi:
-		# goalth = math.pi*2 + goalth
+
+	goalpose = False
+	followpath = True
+	lastpath = rospy.get_time()
 	
 def goalStatusCallback(data):
 	global goalseek
@@ -84,23 +83,6 @@ def goalStatusCallback(data):
 	status = data.status_list[len(data.status_list)-1] # get latest status
 	if status.status == 1:
 		goalseek = True
-		
-# def initialposeCallback(data):
-	# global initth
-	# quaternion = ( data.pose.pose.orientation.x, data.pose.pose.orientation.y,
-	# data.pose.pose.orientation.z, data.pose.pose.orientation.w )
-	# initth = tf.transformations.euler_from_quaternion(quaternion)[2]
-
-# def amclposeCallback(data):
-	# global goalth, initgoalth
-	# quaternion = ( data.pose.pose.orientation.x, data.pose.pose.orientation.y,
-	# data.pose.pose.orientation.z, data.pose.pose.orientation.w )
-	# amclth = tf.transformations.euler_from_quaternion(quaternion)[2]
-	# goalth = initgoalth - amclth
-	# if goalth > math.pi:
-		# goalth = -math.pi*2 + goalth
-	# elif goalth < -math.pi:
-		# goalth = math.pi*2 + goalth
 
 def move(ox, oy, oth, tx, ty, tth, gth):
 	global followpath, goalpose, tfth
@@ -186,12 +168,13 @@ while not rospy.is_shutdown():
 	t = rospy.get_time()
 	
 	if t >= nextmove and goalseek:
+
 		move(odomx, odomy, odomth, targetx, targety, targetth, goalth)
 		nextmove = t + listentime
 		# nextmove = rospy.get_time()+listentime
 		followpath = False
 	
-	if t - lastpath > 3 and not goalth==None:
+	if t - lastpath > 3:
 		goalpose = True
 	
 	try:
