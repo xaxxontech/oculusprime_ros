@@ -3,8 +3,8 @@ recovery_behavior_enabled: true
 clearing_rotation_allowed: true
 
 TrajectoryPlannerROS:
-   max_vel_x: 0.3
-   min_vel_x: 0.15
+   max_vel_x: 0.25
+   min_vel_x: 0.1
    max_vel_y: 0.0  # zero for a differential drive robot
    min_vel_y: 0.0
    max_rotational_vel: 1.5
@@ -34,7 +34,7 @@ TrajectoryPlannerROS:
    sim_granularity: 0.025
    angular_sim_granularity: 0.025
    vx_samples: 8
-   vy_samples: 0 # zero for a differential drive robot
+   vy_samples: 1 # zero for a differential drive robot
    vtheta_samples: 20
    dwa: true
    simple_attractor: false

@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /RobotModel1
         - /Local Plan1
         - /Global Plan1
         - /Pose Array1
@@ -71,7 +72,7 @@ Visualization Manager:
       Position Tolerance: 0.1
       Topic: /odom
       Value: false
-    - Alpha: 1
+    - Alpha: 0.4
       Class: rviz/RobotModel
       Collision Enabled: false
       Enabled: true
@@ -200,7 +201,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: -0.0550003
+      Angle: -0.135
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
@@ -209,11 +210,11 @@ Visualization Manager:
         Value: false
       Name: Current View
       Near Clip Distance: 0.01
-      Scale: 56.1943
+      Scale: 70.2994
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: 10.0232
-      Y: 0.277034
+      X: 3.88656
+      Y: 1.47406
     Saved: ~
 Window Geometry:
   Displays:
@@ -231,5 +232,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 943
-  X: 170
-  Y: 141
+  X: 84
+  Y: 189

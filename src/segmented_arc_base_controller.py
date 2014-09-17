@@ -83,7 +83,11 @@ def goalCallback(data):
 	targetx = odomx
 	targety = odomy
 	
-	targetth = odomth #goalth -tfth
+	if goalpose:
+		targetth = goalth # - tfth
+	else:
+		targetth = odomth  # + tfth	 
+		
 	# if targetth > math.pi:
 		# targetth = -math.pi*2 + targetth
 	# elif targetth < -math.pi:

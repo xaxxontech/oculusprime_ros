@@ -58,7 +58,7 @@ def goalCallback(data):
 	targety = odomy
 	
 	if goalpose:
-		targetth = goalth # - tfth
+		targetth = goalth - tfth
 	else:
 		targetth = odomth  # + tfth	 
 		

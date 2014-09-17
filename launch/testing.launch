@@ -10,10 +10,7 @@
 		args="0 0 0 0 0 0 /map /odom 100" />
 -->
   
-<!--
 	<include file="$(find oculusprime)/launch/move_base.launch" />
--->
-	<include file="$(find oculusprime)/launch/move_base_dwa.launch" />
 
 	<include file="$(find oculusprime)/launch/fake_laser.launch" />
 	
