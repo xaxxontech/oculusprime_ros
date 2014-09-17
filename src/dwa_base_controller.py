@@ -29,10 +29,18 @@ secondspertwopi = 3.8
 initth = 0
 #initgoalth = 0
 tfth = 0
+gbpathx = 0
+gbpathy = 0
+gbpathth = 0
+initturn = False
 
 def pathCallback(data):
 	global targetx, targety, targetth, followpath, lastpath, goalpose
+	global initurn
 	
+	if initturn:
+		return
+		
 	lastpath = rospy.get_time()
 	goalpose = False
 	followpath = True
@@ -42,6 +50,17 @@ def pathCallback(data):
 	quaternion = ( p.pose.orientation.x, p.pose.orientation.y,
 	p.pose.orientation.z, p.pose.orientation.w )
 	targetth = tf.transformations.euler_from_quaternion(quaternion)[2]
+	
+def globalPathCallback(data):
+	global gbpathx, gbpathy, gbpathth
+	n = len(data.poses)
+	if n > 0:
+		p = data.poses[int(n*0.1)] #[len(data.poses)-1] # choose pose 10% along path
+		gbpathx = p.pose.position.x
+		gbpathy = p.pose.position.y
+		quaternion = ( p.pose.orientation.x, p.pose.orientation.y,
+		p.pose.orientation.z, p.pose.orientation.w )
+		gbpathth = tf.transformations.euler_from_quaternion(quaternion)[2]
 
 def odomCallback(data):
 	global odomx, odomy, odomth
@@ -53,27 +72,41 @@ def odomCallback(data):
 	
 def goalCallback(data):
 	global goalth, followpath, lastpath, goalpose, odomx, odomy, odomth, targetx, targety, targetth, tfth
-
-	targetx = odomx
-	targety = odomy
+	global gbpathx, gbpathy, gbpathth, initturn
 	
-	if goalpose:
-		targetth = goalth - tfth
-	else:
-		targetth = odomth  # + tfth	 
-		
-	# if targetth > math.pi:
-		# targetth = -math.pi*2 + targetth
-	# elif targetth < -math.pi:
-		# targetth = math.pi*2 + targetth
-		
+	th = odomth
+	# if goalpose:
+		# th = goalth - tfth
+		# if th > math.pi:
+			# th = -math.pi*2 + th
+		# elif th < -math.pi:
+			# th = math.pi*2 + th
+	# goalpose = False	
+	
 	quaternion = ( data.pose.orientation.x, data.pose.orientation.y,
 	data.pose.orientation.z, data.pose.orientation.w )
 	goalth = tf.transformations.euler_from_quaternion(quaternion)[2]
 
-	goalpose = False
-	followpath = True
+	# turn towards global path before doing anything
+	initturn = True
+	gbpathx = None
+	t = rospy.get_time()
+	while gbpathx == None and rospy.get_time() < t + 2.0: # wait for global path
+		pass
+	
+	dx = gbpathx - odomx
+	dy = gbpathy - odomy	
+	distance = math.sqrt( pow(dx,2) + pow(dy,2) )
+	if distance > 0:
+		gbth = math.acos(dx/distance)
+		if dy <0:
+			gbth = -gbth
+		move(odomx, odomy, th, odomx, odomy, gbth, goalth)  # turn only 
+
+	initturn = False
+
 	lastpath = rospy.get_time()
+	followpath = True
 	
 def goalStatusCallback(data):
 	global goalseek
@@ -102,12 +135,9 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 			th = -th
 	elif goalpose:
 		th = gth - tfth
+		goalpose = False
 	else:
 		th = tth
-
-	#if goalpose:
-		#th = gth
-		#distance = 0
 	
 	dth = th - oth
 	if dth > math.pi:
@@ -161,13 +191,14 @@ rospy.Subscriber("move_base/DWAPlannerROS/local_plan", Path, pathCallback)
 rospy.Subscriber("odom", Odometry, odomCallback)
 rospy.Subscriber("move_base_simple/goal", PoseStamped, goalCallback)
 rospy.Subscriber("move_base/status", GoalStatusArray, goalStatusCallback)
+rospy.Subscriber("move_base/NavfnROS/plan", Path, globalPathCallback)
 rospy.on_shutdown(cleanup)
 listener = tf.TransformListener()
 
 while not rospy.is_shutdown():
 	t = rospy.get_time()
 	
-	if t >= nextmove and goalseek:
+	if t >= nextmove and goalseek and not initturn:
 
 		move(odomx, odomy, odomth, targetx, targety, targetth, goalth)
 		nextmove = t + listentime

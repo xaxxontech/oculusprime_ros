@@ -1,6 +1,6 @@
 <launch>
 	<param name="robot_description" textfile="$(find oculusprime)/description/oculusprime.urdf" />
-	<node pkg="oculusprime" type="dwa_base_controller.py" name="dwa_base_controller" /> 
+	<node pkg="oculusprime" type="dwa_base_controller.py" name="dwa_base_controller" output="screen"/> 
 	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" />
 
 	<node pkg="tf" type="static_transform_publisher" name="base_to_xtion_broadcaster" 
