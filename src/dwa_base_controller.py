@@ -92,9 +92,9 @@ def goalCallback(data):
 		gbth = math.acos(dx/distance)
 		if dy <0:
 			gbth = -gbth
-		gbth -= tfth
+		# gbth += tfth
 		move(0, 0, odomth, 0, 0, gbth, gbth)  # turn only 
-
+		rospy.sleep(1) # led amcl settle
 	initturn = False
 
 	lastpath = rospy.get_time()
