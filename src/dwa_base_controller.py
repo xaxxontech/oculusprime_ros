@@ -7,6 +7,7 @@ import math
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped #, PoseWithCovarianceStamped
 from actionlib_msgs.msg import GoalStatusArray
+from move_base_msgs.msg import MoveBaseActionGoal
 
 listentime = 0.9 # magic constant, seconds
 nextmove = 0
@@ -66,12 +67,14 @@ def odomCallback(data):
 	data.pose.pose.orientation.z, data.pose.pose.orientation.w )
 	odomth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
-def goalCallback(data):
+def goalCallback(d):
 	global goalth, followpath, lastpath, goalpose
 	global odomx, odomy, odomth, targetx, targety, targetth, tfth
 	global gbpathx, gbpathy, gbpathth, initturn
 	
 	# set goal angle
+	data = d.goal.target_pose
+	# data =d
 	quaternion = ( data.pose.orientation.x, data.pose.orientation.y,
 	data.pose.orientation.z, data.pose.orientation.w )
 	goalth = tf.transformations.euler_from_quaternion(quaternion)[2]
@@ -121,12 +124,14 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 		dy = ty - oy	
 		distance = math.sqrt( pow(dx,2) + pow(dy,2) )
 	
+	goalrotate = False
 	if distance > 0:
 		th = math.acos(dx/distance)
 		if dy <0:
 			th = -th
 	elif goalpose:
 		th = gth - tfth
+		goalrotate = True
 	else:
 		th = tth
 	
@@ -169,6 +174,9 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 		socketclient.sendString("move stop")
 		socketclient.waitForReplySearch("<state> direction stop")
 	
+	if goalrotate:
+		rospy.sleep(1)
+	
 def cleanup():
 	socketclient.sendString("odometrystop")
 	socketclient.sendString("state stopbetweenmoves false")
@@ -180,7 +188,8 @@ def cleanup():
 rospy.init_node('base_controller', anonymous=False)
 rospy.Subscriber("move_base/DWAPlannerROS/local_plan", Path, pathCallback)
 rospy.Subscriber("odom", Odometry, odomCallback)
-rospy.Subscriber("move_base_simple/goal", PoseStamped, goalCallback)
+# rospy.Subscriber("move_base_simple/goal", PoseStamped, goalCallback)
+rospy.Subscriber("move_base/goal", MoveBaseActionGoal, goalCallback)
 rospy.Subscriber("move_base/status", GoalStatusArray, goalStatusCallback)
 rospy.Subscriber("move_base/DWAPlannerROS/global_plan", Path, globalPathCallback)
 rospy.on_shutdown(cleanup)
