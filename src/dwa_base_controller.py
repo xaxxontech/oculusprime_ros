@@ -82,22 +82,26 @@ def goalCallback(d):
 	# turn towards global path before doing anything
 	goalpose = False	
 	initturn = True
+	
+	# wait for global path
 	gbpathx = None
 	t = rospy.get_time()
 	lastpath = t
-	while gbpathx == None and rospy.get_time() < t + 2.0: # wait for global path
+	while gbpathx == None and rospy.get_time() < t + 5.0: 
 		pass
 	
-	dx = gbpathx - odomx
-	dy = gbpathy - odomy	
-	distance = math.sqrt( pow(dx,2) + pow(dy,2) )
-	if distance > 0:
-		gbth = math.acos(dx/distance)
-		if dy <0:
-			gbth = -gbth
-		# gbth += tfth
-		move(0, 0, odomth, 0, 0, gbth, gbth)  # turn only 
-		rospy.sleep(1) # led amcl settle
+	if not gbpathx == None:
+		dx = gbpathx - odomx
+		dy = gbpathy - odomy	
+		distance = math.sqrt( pow(dx,2) + pow(dy,2) )
+		if distance > 0:
+			gbth = math.acos(dx/distance)
+			if dy <0:
+				gbth = -gbth
+			# gbth += tfth
+			move(0, 0, odomth, 0, 0, gbth, gbth)  # turn only 
+			rospy.sleep(1) # led amcl settle
+			
 	initturn = False
 
 	lastpath = rospy.get_time()
@@ -207,6 +211,15 @@ while not rospy.is_shutdown():
 	if t - lastpath > 3:
 		goalpose = True
 	
+	if int(t- lastpath) == 10 and goalseek: # recovery behavior, rotate
+		socketclient.sendString("speed "+str(turnspeed) )
+		socketclient.sendString("move right")
+		rospy.sleep(1)
+
+	if t- lastpath > 20 and goalseek: # failure, exit
+		rospy.loginfo("oculusprime base contoller exit")
+		break
+		
 	try:
 		(trans,rot) = listener.lookupTransform('/map', '/odom', rospy.Time(0))
 	except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):

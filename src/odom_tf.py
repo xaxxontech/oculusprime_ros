@@ -50,7 +50,7 @@ now = 0
 
 def broadcast(s):
 	global before, pos, now
-	now = rospy.Time.now()
+	now = rospy.Time.now() - rospy.Duration(0.05) # subtract socket + serial + fifo read lag
 	dt = (now-before).to_sec()
 	before = now
 
