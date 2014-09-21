@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 
+"""
+on any new /initialpose, do full rotation, then delay
+"""
+
+
 import rospy, tf
 import socketclient
 from nav_msgs.msg import Odometry
 import math
 from nav_msgs.msg import Path
-from geometry_msgs.msg import PoseStamped #, PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from actionlib_msgs.msg import GoalStatusArray
 from move_base_msgs.msg import MoveBaseActionGoal
 
@@ -18,6 +23,8 @@ targetx = 0
 targety = 0
 targetth = 0
 followpath = False
+goalx = 0
+goaly = 0
 goalth = 0 
 minturn = math.radians(6) # 0.21 minimum for pwm 255
 lastpath = 0
@@ -26,13 +33,12 @@ goalseek = False
 linearspeed = 150
 secondspermeter = 3.2 #float
 turnspeed = 100
-secondspertwopi = 3.8
+secondspertwopi = 4.2
 initth = 0
 #initgoalth = 0
 tfth = 0
 gbpathx = 0
 gbpathy = 0
-gbpathth = 0
 initturn = False
 
 def pathCallback(data):
@@ -49,15 +55,12 @@ def pathCallback(data):
 	targetth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
 def globalPathCallback(data):
-	global gbpathx, gbpathy, gbpathth
+	global gbpathx, gbpathy
 	n = len(data.poses)
 	if n > 0:
 		p = data.poses[int(n*0.1)] #[len(data.poses)-1] # choose pose 10% along path
 		gbpathx = p.pose.position.x
 		gbpathy = p.pose.position.y
-		quaternion = ( p.pose.orientation.x, p.pose.orientation.y,
-		p.pose.orientation.z, p.pose.orientation.w )
-		gbpathth = tf.transformations.euler_from_quaternion(quaternion)[2]
 
 def odomCallback(data):
 	global odomx, odomy, odomth
@@ -66,15 +69,32 @@ def odomCallback(data):
 	quaternion = ( data.pose.pose.orientation.x, data.pose.pose.orientation.y,
 	data.pose.pose.orientation.z, data.pose.pose.orientation.w )
 	odomth = tf.transformations.euler_from_quaternion(quaternion)[2]
+
+def intialPoseCallback(data):
+	# do full rotation on pose estimate, to hone-in amcl
+	global initturn
+	initturn = True
+	socketclient.sendString("speed "+str(turnspeed) )
+	socketclient.sendString("move right")
+	rospy.sleep(secondspertwopi) # full rotation
+	socketclient.sendString("move stop")
+	socketclient.waitForReplySearch("<state> direction stop")
+	rospy.sleep(1)
+	initturn = False
 	
 def goalCallback(d):
-	global goalth, followpath, lastpath, goalpose
-	global odomx, odomy, odomth, targetx, targety, targetth, tfth
-	global gbpathx, gbpathy, gbpathth, initturn
+	global goalth, goalx, goaly, followpath, lastpath, goalpose
+	global odomx, odomy, odomth
+	global gbpathx, gbpathy, initturn
+	
+	while initturn == True: # wait if another initturn already in progress
+		pass
 	
 	# set goal angle
 	data = d.goal.target_pose
 	# data =d
+	goalx = data.pose.position.x
+	goaly = data.pose.position.y
 	quaternion = ( data.pose.orientation.x, data.pose.orientation.y,
 	data.pose.orientation.z, data.pose.orientation.w )
 	goalth = tf.transformations.euler_from_quaternion(quaternion)[2]
@@ -98,9 +118,8 @@ def goalCallback(d):
 			gbth = math.acos(dx/distance)
 			if dy <0:
 				gbth = -gbth
-			# gbth += tfth
 			move(0, 0, odomth, 0, 0, gbth, gbth)  # turn only 
-			rospy.sleep(1) # led amcl settle
+			rospy.sleep(0.5) # led amcl settle
 			
 	initturn = False
 
@@ -118,6 +137,7 @@ def goalStatusCallback(data):
 
 def move(ox, oy, oth, tx, ty, tth, gth):
 	global followpath, goalpose, tfth
+	global goalx, goaly, odomx, odomy, odomth
 
 	# print "odom: "+str(ox)+", "+str(oy)+", "+str(oth)
 	# print "target: "+str(tx)+", "+str(ty)+", "+str(tth)
@@ -179,7 +199,19 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 		socketclient.waitForReplySearch("<state> direction stop")
 	
 	if goalrotate:
-		rospy.sleep(1)
+		rospy.sleep(1) # let amcl settle
+		# if goalseek: # not at goal yet, turn towards goal required
+			# dx = goalx - odomx
+			# dy = goaly - odomy	
+			# distance = math.sqrt( pow(dx,2) + pow(dy,2) )
+			# if distance > 0:
+				# th = math.acos(dx/distance)
+				# if dy <0:
+					# th = -th
+				# goalpose = False
+				# th -= - tfth
+				# move(0, 0, odomth, 0, 0, th, th)  # turn only - NESTED!?
+				# rospy.sleep(0.5) # led amcl settle
 	
 def cleanup():
 	socketclient.sendString("odometrystop")
@@ -192,10 +224,10 @@ def cleanup():
 rospy.init_node('base_controller', anonymous=False)
 rospy.Subscriber("move_base/DWAPlannerROS/local_plan", Path, pathCallback)
 rospy.Subscriber("odom", Odometry, odomCallback)
-# rospy.Subscriber("move_base_simple/goal", PoseStamped, goalCallback)
 rospy.Subscriber("move_base/goal", MoveBaseActionGoal, goalCallback)
 rospy.Subscriber("move_base/status", GoalStatusArray, goalStatusCallback)
 rospy.Subscriber("move_base/DWAPlannerROS/global_plan", Path, globalPathCallback)
+rospy.Subscriber("initialpose", PoseWithCovarianceStamped, intialPoseCallback)
 rospy.on_shutdown(cleanup)
 listener = tf.TransformListener()
 
@@ -211,14 +243,14 @@ while not rospy.is_shutdown():
 	if t - lastpath > 3:
 		goalpose = True
 	
-	if int(t- lastpath) == 10 and goalseek: # recovery behavior, rotate
+	if int(t- lastpath) > 10 and goalseek: # recovery behavior, rotate
 		socketclient.sendString("speed "+str(turnspeed) )
 		socketclient.sendString("move right")
 		rospy.sleep(1)
-
-	if t- lastpath > 20 and goalseek: # failure, exit
-		rospy.loginfo("oculusprime base contoller exit")
-		break
+# 
+	# if t- lastpath > 20 and goalseek: # failure, exit
+		# rospy.loginfo("oculusprime base contoller exit")
+		# break
 		
 	try:
 		(trans,rot) = listener.lookupTransform('/map', '/odom', rospy.Time(0))
