@@ -14,7 +14,7 @@ from geometry_msgs.msg import PoseWithCovarianceStamped
 from actionlib_msgs.msg import GoalStatusArray
 from move_base_msgs.msg import MoveBaseActionGoal
 
-listentime = 1.3 # magic constant, seconds  0.8 with sim_time = 1.0
+listentime = 1.1 # magic constant, seconds  0.8 with sim_time = 1.0
 nextmove = 0
 odomx = 0
 odomy = 0
@@ -26,7 +26,7 @@ followpath = False
 goalx = 0
 goaly = 0
 goalth = 0 
-minturn = math.radians(8) # 0.21 minimum for pwm 255
+minturn = math.radians(6) # 0.21 minimum for pwm 255
 lastpath = 0
 goalpose = False
 goalseek = False
@@ -74,6 +74,7 @@ def intialPoseCallback(data):
 	# do full rotation on pose estimate, to hone-in amcl
 	global initturn
 	initturn = True
+	rospy.sleep(0.5) # let amcl settle
 	socketclient.sendString("speed "+str(turnspeed) )
 	socketclient.sendString("move right")
 	rospy.sleep(secondspertwopi) # full rotation
@@ -119,7 +120,7 @@ def goalCallback(d):
 			if dy <0:
 				gbth = -gbth
 			move(0, 0, odomth, 0, 0, gbth, gbth)  # turn only 
-			rospy.sleep(0.5) # led amcl settle
+			rospy.sleep(0.5) # let amcl settle
 			
 	initturn = False
 
@@ -136,7 +137,7 @@ def goalStatusCallback(data):
 		goalseek = True
 
 def move(ox, oy, oth, tx, ty, tth, gth):
-	global followpath, goalpose, tfth
+	global followpath, goalpose, tfth, nextmove
 	global goalx, goaly, odomx, odomy, odomth
 
 	# print "odom: "+str(ox)+", "+str(oy)+", "+str(oth)
@@ -199,19 +200,10 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 		socketclient.waitForReplySearch("<state> direction stop")
 	
 	if goalrotate:
-		rospy.sleep(1) # let amcl settle
-		# if goalseek: # not at goal yet, turn towards goal required
-			# dx = goalx - odomx
-			# dy = goaly - odomy	
-			# distance = math.sqrt( pow(dx,2) + pow(dy,2) )
-			# if distance > 0:
-				# th = math.acos(dx/distance)
-				# if dy <0:
-					# th = -th
-				# goalpose = False
-				# th -= - tfth
-				# move(0, 0, odomth, 0, 0, th, th)  # turn only - NESTED!?
-				# rospy.sleep(0.5) # led amcl settle
+		rospy.sleep(1) 
+	
+	# if not dth == 0 and distance == 0 and not goalrotate:
+		# nextmove = rospy.get_time() + 0.5
 	
 def cleanup():
 	socketclient.sendString("odometrystop")

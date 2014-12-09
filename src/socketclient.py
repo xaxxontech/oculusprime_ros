@@ -5,11 +5,8 @@
 
 import socket, re
 
-# USER VARIABLES - change to appropriate values
+# NETWORK VARIABLES - change to appropriate values
 host = "127.0.0.1"
-# host = "192.168.0.111"
-username = "colin"
-password = "asdf"
 port = 4444
 
 connected = True
@@ -69,5 +66,4 @@ except socket.error:
 sockfileIO = sock.makefile()
 
 # login 	
-waitForReplySearch("^<telnet> LOGIN")
-sendString(username+":"+password)
+waitForReplySearch("^<telnet> Welcome")
