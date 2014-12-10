@@ -1,6 +1,8 @@
-# README #
+# OCULUS PRIME SERVER #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+Oculus Prime Robot Server Java Application
+ 
+[Alt text](http://www.xaxxon.com/images/oculusprime/oculusprime_charging.jpg)
 
 ### What is this repository for? ###
 
