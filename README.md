@@ -1,31 +1,10 @@
 # OCULUS PRIME SERVER #
 
-Oculus Prime Robot Server Java Application
+Oculus Prime Robot Server - Java Application
  
-[Alt text](http://www.xaxxon.com/images/oculusprime/oculusprime_charging.jpg)
+![Alt text](http://www.xaxxon.com/images/oculusprime/oculusprime_charging.jpg)
 
-### What is this repository for? ###
+[ http://www.xaxxon.com/documentation/view/oculus-prime-contents ](http://www.xaxxon.com/documentation/view/oculus-prime-contents)
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
-
-### How do I get set up? ###
-
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
-
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+Linux Ubuntu 12.04+ x64
+32-bit Java 7
