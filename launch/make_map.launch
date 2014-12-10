@@ -4,7 +4,7 @@ run this launch file on the robot
 
 to monitor map building progress, on a remote machine, run:  
    rosrun rviz rviz -d `rospack find oculusprime`/gmapping.rviz
-   (or map_rv command, if available, same thing)
+   (or identical map_rv command, if available)
    
 drive using oculus prime remote client (videosetting medium)
 
