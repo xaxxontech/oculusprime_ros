@@ -1,0 +1,4 @@
+#! /bin/bash
+
+rosrun rviz rviz -d `rospack find oculusprime`/gmapping.rviz 
+

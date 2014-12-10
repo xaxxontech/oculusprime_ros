@@ -1,12 +1,29 @@
+<!-- 
+
+run this launch file on the robot
+
+to monitor map building progress, on a remote machine, run:  
+   rosrun rviz rviz -d `rospack find oculusprime`/gmapping.rviz
+   (or map_rv command, if available, same thing)
+   
+drive using oculus prime remote client, speed slow is best, close a few loops
+
+with launch file still running on robot, save map using command:
+   rosrun map_server map_saver
+This will save bitmap file map.pgm in current directory
+
+change name to my_map.pgm to use with dwa_nav.launch
+
+-->
+
 <launch>
 	<param name="robot_description" textfile="$(find oculusprime)/description/oculusprime.urdf" />
-	<node pkg="oculusprime" type="segmented_arc_base_controller.py" name="segmented_arc_base_controller" />
 	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" />
 	<node pkg="tf" type="static_transform_publisher" name="base_to_xtion_broadcaster" 
 		args="-0.054 0.02 0.29 0 0 0 base_link camera_depth_frame 100" />
 
-	<include file="$(find rbx1_bringup)/launch/fake_laser.launch" />
-	<include file="$(find rbx1_nav)/launch/gmapping.launch" />	
+	<include file="$(find oculusprime)/launch/fake_laser.launch" />
+	<include file="$(find oculusprime)/launch/gmapping.launch" />	
 </launch>
 
 

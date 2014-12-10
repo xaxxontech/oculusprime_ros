@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import rospy
-import oculusprime
+import oculusprimesocket
 from sensor_msgs.msg import Joy
 
 lastdirection = "S" # F B L R S (forward back left right stop)
@@ -71,49 +71,49 @@ def callback(data):
 	# move
 	global lastdirection
 	if direction == "S" and lastdirection != "S":
-		oculusprime.sendString("move stop")
+		oculusprimesocket.sendString("move stop")
 		lastdirection = direction
 	if direction == "F" and lastdirection != "F":
-		oculusprime.sendString("move forward")
+		oculusprimesocket.sendString("move forward")
 		lastdirection = direction
 	elif direction == "B" and lastdirection != "B":
-		oculusprime.sendString("move backward")
+		oculusprimesocket.sendString("move backward")
 		lastdirection = direction
 	elif direction == "R" and lastdirection != "R":
-		oculusprime.sendString("move right")
+		oculusprimesocket.sendString("move right")
 		lastdirection = direction
 	elif direction == "L" and lastdirection != "L":
-		oculusprime.sendString("move left")
+		oculusprimesocket.sendString("move left")
 		lastdirection = direction
 		
 	# camera tilt
 	global lastcam
 	if cam == "S" and lastcam != "S":
-		oculusprime.sendString("cameracommand stop")
+		oculusprimesocket.sendString("cameracommand stop")
 		lastcam = cam
 	elif cam == "U" and lastcam != "U":
-		oculusprime.sendString("cameracommand up")
+		oculusprimesocket.sendString("cameracommand up")
 		lastcam = cam
 	elif cam == "D" and lastcam != "D":
-		oculusprime.sendString("cameracommand down")
+		oculusprimesocket.sendString("cameracommand down")
 		lastcam = cam
 		
 	# strobe
 	global laststrobe
 	if strobe == "on" and laststrobe != "on":
-		oculusprime.sendString("strobeflash on")
+		oculusprimesocket.sendString("strobeflash on")
 		laststrobe = strobe
 	elif strobe == "off" and laststrobe != "off":
-		oculusprime.sendString("strobeflash off")
+		oculusprimesocket.sendString("strobeflash off")
 		laststrobe = strobe
 		
 	# dock
 	global lastdock
 	if dock=="go" and lastdock != "go":
-		oculusprime.sendString("streamsettingsset high");
-		oculusprime.sendString("publish camera")
+		oculusprimesocket.sendString("streamsettingsset high");
+		oculusprimesocket.sendString("publish camera")
 		rospy.sleep(2)
-		oculusprime.sendString("autodock go")
+		oculusprimesocket.sendString("autodock go")
 		lastdock = dock
 	elif dock=="nil":
 		lastdock = "nil"

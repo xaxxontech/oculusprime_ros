@@ -6,7 +6,7 @@ on any new /initialpose, do full rotation, then delay
 
 
 import rospy, tf
-import socketclient
+import oculusprimesocket
 from nav_msgs.msg import Odometry
 import math
 from nav_msgs.msg import Path
@@ -75,11 +75,11 @@ def intialPoseCallback(data):
 	global initturn
 	initturn = True
 	rospy.sleep(0.5) # let amcl settle
-	socketclient.sendString("speed "+str(turnspeed) )
-	socketclient.sendString("move right")
+	oculusprimesocket.sendString("speed "+str(turnspeed) )
+	oculusprimesocket.sendString("move right")
 	rospy.sleep(secondspertwopi) # full rotation
-	socketclient.sendString("move stop")
-	socketclient.waitForReplySearch("<state> direction stop")
+	oculusprimesocket.sendString("move stop")
+	oculusprimesocket.waitForReplySearch("<state> direction stop")
 	rospy.sleep(1)
 	initturn = False
 	
@@ -180,24 +180,24 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 
 
 	if dth > 0:
-		socketclient.sendString("speed "+str(turnspeed) )
-		socketclient.sendString("move left")
+		oculusprimesocket.sendString("speed "+str(turnspeed) )
+		oculusprimesocket.sendString("move left")
 		rospy.sleep(dth/(2.0*math.pi) * secondspertwopi)
-		socketclient.sendString("move stop")
-		socketclient.waitForReplySearch("<state> direction stop")
+		oculusprimesocket.sendString("move stop")
+		oculusprimesocket.waitForReplySearch("<state> direction stop")
 	elif dth < 0:
-		socketclient.sendString("speed "+str(turnspeed) )
-		socketclient.sendString("move right")
+		oculusprimesocket.sendString("speed "+str(turnspeed) )
+		oculusprimesocket.sendString("move right")
 		rospy.sleep(-dth/(2.0*math.pi) * secondspertwopi)
-		socketclient.sendString("move stop")
-		socketclient.waitForReplySearch("<state> direction stop")
+		oculusprimesocket.sendString("move stop")
+		oculusprimesocket.waitForReplySearch("<state> direction stop")
 
 	if distance > 0:
-		socketclient.sendString("speed "+str(linearspeed) )
-		socketclient.sendString("move forward")
+		oculusprimesocket.sendString("speed "+str(linearspeed) )
+		oculusprimesocket.sendString("move forward")
 		rospy.sleep(distance*secondspermeter)
-		socketclient.sendString("move stop")
-		socketclient.waitForReplySearch("<state> direction stop")
+		oculusprimesocket.sendString("move stop")
+		oculusprimesocket.waitForReplySearch("<state> direction stop")
 	
 	if goalrotate:
 		rospy.sleep(1) 
@@ -206,9 +206,9 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 		# nextmove = rospy.get_time() + 0.5
 	
 def cleanup():
-	socketclient.sendString("odometrystop")
-	socketclient.sendString("state stopbetweenmoves false")
-	socketclient.sendString("move stop")
+	oculusprimesocket.sendString("odometrystop")
+	oculusprimesocket.sendString("state stopbetweenmoves false")
+	oculusprimesocket.sendString("move stop")
 
 
 # MAIN
@@ -236,8 +236,8 @@ while not rospy.is_shutdown():
 		goalpose = True
 	
 	if int(t- lastpath) > 10 and goalseek: # recovery behavior, rotate
-		socketclient.sendString("speed "+str(turnspeed) )
-		socketclient.sendString("move right")
+		oculusprimesocket.sendString("speed "+str(turnspeed) )
+		oculusprimesocket.sendString("move right")
 		rospy.sleep(1)
 # 
 	# if t- lastpath > 20 and goalseek: # failure, exit

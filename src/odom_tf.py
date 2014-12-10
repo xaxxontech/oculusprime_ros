@@ -38,7 +38,7 @@ TODO: dometry still overshooting linear by couple cm when interrupted by turn
 from math import radians, sin, cos
 import rospy, tf
 from nav_msgs.msg import Odometry
-import socketclient
+import oculusprimesocket
 
 
 lastupdate = 0
@@ -97,8 +97,8 @@ def broadcast(s):
 	odom_pub.publish(odom)
 
 def cleanup():
-	socketclient.sendString("odometrystop")
-	socketclient.sendString("state stopbetweenmoves false")
+	oculusprimesocket.sendString("odometrystop")
+	oculusprimesocket.sendString("state stopbetweenmoves false")
 
 
 # MAIN
@@ -108,21 +108,21 @@ before = rospy.Time.now()
 br = tf.TransformBroadcaster()
 odom_pub = rospy.Publisher('odom', Odometry, queue_size=10)
 rospy.on_shutdown(cleanup)
-socketclient.sendString("odometrystart")
-socketclient.sendString("state stopbetweenmoves true")
+oculusprimesocket.sendString("odometrystart")
+oculusprimesocket.sendString("state stopbetweenmoves true")
 broadcast("* * 0 0".split())
 
 while not rospy.is_shutdown():
 	t = rospy.get_time()
 	
 	if t-lastupdate > updateinterval: 
-		socketclient.sendString("odometryreport")
-		s = socketclient.waitForReplySearch("<state> distanceangle ")
+		oculusprimesocket.sendString("odometryreport")
+		s = oculusprimesocket.waitForReplySearch("<state> distanceangle ")
 		broadcast(s.split())
 		lastupdate = now.to_sec()
 
 	else:			
-		s = socketclient.replyBufferSearch("<state> distanceangle ")
+		s = oculusprimesocket.replyBufferSearch("<state> distanceangle ")
 		if not s=="":
 			broadcast(s.split())
 			lastupdate = now.to_sec()
