@@ -6,13 +6,13 @@ to monitor map building progress, on a remote machine, run:
    rosrun rviz rviz -d `rospack find oculusprime`/gmapping.rviz
    (or map_rv command, if available, same thing)
    
-drive using oculus prime remote client, speed slow is best, close a few loops
+drive using oculus prime remote client (videosetting medium)
 
 with launch file still running on robot, save map using command:
    rosrun map_server map_saver
 This will save bitmap file map.pgm in current directory
 
-change name to my_map.pgm to use with dwa_nav.launch
+change name to maps/my_map.pgm to use with dwa_nav.launch
 
 -->
 
