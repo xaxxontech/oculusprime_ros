@@ -1,10 +1,8 @@
-# OCULUS PRIME #
-
-[ ROS Indigo ](http://wiki.ros.org/indigo/Installation/Ubuntu)
+# OCULUSPRIME_ROS #
 
 ![Alt text](http://www.xaxxon.com/images/oculusprime/oculusprime_charging.jpg)
 
-[ xaxxon.com documentation ](http://www.xaxxon.com/documentation/view/oculus-prime-contents)
+[ xaxxon.com/oculusprime ](http://www.xaxxon.com/oculusprime)
 
 Linux Ubuntu 12.04+ x64
 Python 
