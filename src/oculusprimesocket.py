@@ -1,27 +1,42 @@
 #!/usr/bin/env python
 
-# socketclient.py - make tcp socket connection with robot, relay commands and messages 
+# make tcp socket connection with robot, relay commands and messages 
 
+"""make tcp socket connection with Oculus Prime Server Application
+provide functions for relay of commands and messages"""
 
 import socket, re
 
-# NETWORK VARIABLES - change to appropriate values
+# NETWORK VARIABLE defaults - change to appropriate values
 host = "127.0.0.1"
 port = 4444
 
-connected = True
+connected = False
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+sockfileIO = None
 
-# send single line commands to java server
 def sendString(s):
+	"""Send single line command to server
+	
+	s -- command to be sent
+	clears incoming buffer before send	
+	"""
+
 	try:
 		clearIncoming()
 		sock.sendall(s+"\r\n")
 	except socket.error: 
 		connected = False
 
-# [blocking] search output from java server, WAIT until match to regular expresson pattern
-def waitForReplySearch(pattern): 
+
+def waitForReplySearch(pattern):
+	"""Read all incoming messages from server, do not return until search match 
+	
+	pattern -- regular expression pattern to be searched
+	returns first line containing match
+	blocking function
+	"""
+
 	while True:
 		try:
 			servermsg = (sockfileIO.readline()).strip()
@@ -33,6 +48,8 @@ def waitForReplySearch(pattern):
 	return servermsg # return the line containing pattern
 
 def clearIncoming():
+	"""Clear socket buffer of all incoming server messages"""
+	
 	sock.setblocking(False)
 	while True:
 		try:
@@ -41,8 +58,14 @@ def clearIncoming():
 			break
 	sock.setblocking(True)
 			
-# [non-blocking] search through unread output from java server, compare to regular expresson pattern
 def replyBufferSearch(pattern): 
+	"""Search through unread output from server, compare to pattern, return match
+	
+	pattern -- regular expression pattern to be searched
+	returns: first line containing match, or empty string if search fails
+	non blocking function
+	"""
+	
 	result = "" # return empty string if search fails
 	sock.setblocking(False) # don't pause and wait for any further input
 	while True:
@@ -57,13 +80,15 @@ def replyBufferSearch(pattern):
 	sock.setblocking(True)
 	return result  
 
-
-# connect
-try:
-	sock.connect((host, port))
-except socket.error:
-	connected = False
-sockfileIO = sock.makefile()
-
-# login 	
-waitForReplySearch("^<telnet> Welcome")
+def connect():
+	"""Make socket connection to server, blocking"""
+	global sockfileIO, connected
+	try:
+		sock.connect((host, port))
+	except socket.error:
+		connected = False
+		return False
+	sockfileIO = sock.makefile()
+	waitForReplySearch("^<telnet> Welcome")
+	connected = True
+	return True

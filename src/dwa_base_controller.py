@@ -222,6 +222,7 @@ rospy.Subscriber("move_base/DWAPlannerROS/global_plan", Path, globalPathCallback
 rospy.Subscriber("initialpose", PoseWithCovarianceStamped, intialPoseCallback)
 rospy.on_shutdown(cleanup)
 listener = tf.TransformListener()
+oculusprimesocket.connect()
 
 while not rospy.is_shutdown():
 	t = rospy.get_time()
