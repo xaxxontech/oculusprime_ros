@@ -6,8 +6,7 @@
 
 [ xaxxon.com/oculusprime ](http://www.xaxxon.com/oculusprime)
 
-Linux Ubuntu 12.04+ x64
-Python 
+Linux Ubuntu 14.04 x64 Python ROS-Indigo
 
 #Runtime Dependencies:#
 
