@@ -1,13 +1,15 @@
 # OCULUSPRIME_ROS #
 
-![Alt text](http://www.xaxxon.com/images/oculusprime/oculusprime_charging.jpg)
+![Alt text](http://www.xaxxon.com/resources/news/oculusprime_elevation_400.jpg)
+
+[ wiki.ros.org/Robots/Oculus_Prime ](http://wiki.ros.org/Robots/Oculus_Prime)
 
 [ xaxxon.com/oculusprime ](http://www.xaxxon.com/oculusprime)
 
 Linux Ubuntu 12.04+ x64
 Python 
 
-#Dependencies:#
+#Runtime Dependencies:#
 
     ros-indigo-move-base ros-indigo-map-server 
     ros-indigo-depthimage-to-laserscan ros-indigo-amcl 

@@ -1,38 +1,9 @@
 #!/usr/bin/env python
 
 """
-notes:
--make tcp socket connection with robot java
--listen for <state> moving true -- if so send ODOMETRY_START command to firmware (via telnet-java)
-	-to clear drift values
-	-separate thread(?)
--read odo values every n milliseconds, then update odo topic with pose/Twist
--do not update angular pose when not moving, if so will be vast gyro drift (ie., listem for <state> move stop)
-	-set angular pose change at 0 when not moving
--if angle changing much more than linear move (ie., detect turn), discard encoder data
-	-would be much easier if knew direction
-	-would be much easier if base_controller threw up direction info to messaging, **<<DO THIS** NO!
-		Just subscribe to Twist messages!
-	 so wouldn't have to read via telnet at all
-if odo running, pass parameter to base_controller, so THAT could send ODOMETRY_START/REPORT COMMANDS..? 
-	-doesn't really matter, since this node has to read odo via telnet anyway
-	
-rev_1:
--firmware knows direction, discards encoder data when turning (was way too slow doing it here)
--so we don't care if turning/forward/backward -- just keep reading a bit during slow down 
--DO need way to zero angle drift if starting from stopped - firmware?
-
-TODO: get firmware to spit out odo data ON EVERY DIRECTION CHANGE!  NO!! is recording everything just fine, 
- parent can record direction changes - just have firmware encoder recording ignore rev++ when turning?
-have this read through past buffer and  accumulate all <moved> tags!
-timestapping...
-TODO: dometry still overshooting linear by couple cm when interrupted by turn
-  -also missing timing when switching to reverse -- probably because movement commands are followed by lag
-  -maybe detect direction changes with rate data? Don't use commands as indicators. THEN push movement data to 
-    serial on direction change detect
-  -OK forward/back direction change detect working OK, high speed little less accurate 
-  (probably missing ticks) OR slippage -- accel control may help
-
+connect to Oculus Prime Server Application
+poll server for odometry data
+broadcast tranform between base_link and odom frames
 """
 
 from math import radians, sin, cos
@@ -111,18 +82,18 @@ rospy.on_shutdown(cleanup)
 oculusprimesocket.connect()
 oculusprimesocket.sendString("odometrystart")
 oculusprimesocket.sendString("state stopbetweenmoves true")
-broadcast("* * 0 0".split())
+broadcast("* * 0 0".split()) # broadcast zero odometry baseline
 
 while not rospy.is_shutdown():
 	t = rospy.get_time()
 	
-	if t-lastupdate > updateinterval: 
+	if t-lastupdate > updateinterval:  # requeset odometry update
 		oculusprimesocket.sendString("odometryreport")
 		s = oculusprimesocket.waitForReplySearch("<state> distanceangle ")
 		broadcast(s.split())
 		lastupdate = now.to_sec()
 
-	else:			
+	else: # broadcast any un-requested odometry updates
 		s = oculusprimesocket.replyBufferSearch("<state> distanceangle ")
 		if not s=="":
 			broadcast(s.split())
