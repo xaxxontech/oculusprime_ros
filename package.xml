@@ -44,13 +44,13 @@
   <build_depend>std_msgs</build_depend>
   <run_depend>rospy</run_depend>
   <run_depend>std_msgs</run_depend>
-  <run_depend>move-base</run_depend>
-  <run_depend>map-server</run_depend>
-  <run_depend>depthimage-to-laserscan</run_depend>
+  <run_depend>move_base</run_depend>
+  <run_depend>map_server</run_depend>
+  <run_depend>depthimage_to_laserscan</run_depend>
   <run_depend>amcl</run_depend>
-  <run_depend>openni2-launch</run_depend>
-  <run_depend>openni2-camera</run_depend>
-  <run_depend>dwa-local-planner</run_depend>
+  <run_depend>openni2_launch</run_depend>
+  <run_depend>openni2_camera</run_depend>
+  <run_depend>dwa_local_planner</run_depend>
   <run_depend>gmapping</run_depend>
   
   <!-- The export tag contains other, unspecified, tags -->
