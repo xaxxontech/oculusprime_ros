@@ -213,7 +213,7 @@ def cleanup():
 
 # MAIN
 
-rospy.init_node('base_controller', anonymous=False)
+rospy.init_node('dwa_base_controller', anonymous=False)
 rospy.Subscriber("move_base/DWAPlannerROS/local_plan", Path, pathCallback)
 rospy.Subscriber("odom", Odometry, odomCallback)
 rospy.Subscriber("move_base/goal", MoveBaseActionGoal, goalCallback)
