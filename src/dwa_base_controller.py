@@ -40,6 +40,7 @@ tfth = 0
 gbpathx = 0
 gbpathy = 0
 initturn = False
+# lastodomupdate = 0
 
 def pathCallback(data):
 	global targetx, targety, targetth, followpath, lastpath, goalpose
@@ -63,12 +64,16 @@ def globalPathCallback(data):
 		gbpathy = p.pose.position.y
 
 def odomCallback(data):
-	global odomx, odomy, odomth
+	global odomx, odomy, odomth #, lastodomupdate
 	odomx = data.pose.pose.position.x
 	odomy = data.pose.pose.position.y
 	quaternion = ( data.pose.pose.orientation.x, data.pose.pose.orientation.y,
 	data.pose.pose.orientation.z, data.pose.pose.orientation.w )
 	odomth = tf.transformations.euler_from_quaternion(quaternion)[2]
+	
+	# if rospy.get_time() - lastodomupdate > 0.5:
+		# oculusprimesocket.sendString("state rosodom "+str(odomx)+"_"+str(odomy)+"_"+str(odomth))
+		# lastodomupdate = rospy.get_time()
 
 def intialPoseCallback(data):
 	# do full rotation on pose estimate, to hone-in amcl
@@ -214,6 +219,7 @@ def cleanup():
 # MAIN
 
 rospy.init_node('dwa_base_controller', anonymous=False)
+oculusprimesocket.connect()
 rospy.Subscriber("move_base/DWAPlannerROS/local_plan", Path, pathCallback)
 rospy.Subscriber("odom", Odometry, odomCallback)
 rospy.Subscriber("move_base/goal", MoveBaseActionGoal, goalCallback)
@@ -222,7 +228,7 @@ rospy.Subscriber("move_base/DWAPlannerROS/global_plan", Path, globalPathCallback
 rospy.Subscriber("initialpose", PoseWithCovarianceStamped, intialPoseCallback)
 rospy.on_shutdown(cleanup)
 listener = tf.TransformListener()
-oculusprimesocket.connect()
+
 
 while not rospy.is_shutdown():
 	t = rospy.get_time()

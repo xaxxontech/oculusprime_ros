@@ -1,0 +1,7 @@
+<launch>
+	<include file="$(find oculusprime)/launch/dwa_nav.launch" />
+	
+	<node pkg="oculusprime" type="remote_nav.py" name="remote_nav" 
+		required="true" />
+
+</launch>
