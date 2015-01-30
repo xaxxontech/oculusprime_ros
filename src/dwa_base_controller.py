@@ -257,5 +257,7 @@ while not rospy.is_shutdown():
 		continue		
 	quaternion = (rot[0], rot[1], rot[2], rot[3])
 	tfth = tf.transformations.euler_from_quaternion(quaternion)[2]
+	
+	rospy.sleep(0.01)
 		
 cleanup()

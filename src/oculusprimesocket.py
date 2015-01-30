@@ -19,11 +19,10 @@ def sendString(s):
 	"""Send single line command to server
 	
 	s -- command to be sent
-	clears incoming buffer before send	
 	"""
 
 	try:
-		clearIncoming()
+		# clearIncoming()
 		sock.sendall(s+"\r\n")
 	except socket.error: 
 		connected = False
@@ -60,6 +59,7 @@ def clearIncoming():
 			
 def replyBufferSearch(pattern): 
 	"""Search through unread output from server, compare to pattern, return match
+	stops reading buffer if finds a match
 	
 	pattern -- regular expression pattern to be searched
 	returns: first line containing match, or empty string if search fails

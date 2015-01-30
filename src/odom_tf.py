@@ -85,20 +85,17 @@ oculusprimesocket.sendString("state stopbetweenmoves true")
 broadcast("* * 0 0".split()) # broadcast zero odometry baseline
 
 while not rospy.is_shutdown():
+
 	t = rospy.get_time()
-	
 	if t-lastupdate > updateinterval:  # requeset odometry update
 		oculusprimesocket.sendString("odometryreport")
-		s = oculusprimesocket.waitForReplySearch("<state> distanceangle ")
+
+	s = oculusprimesocket.replyBufferSearch("<state> distanceangle ")
+	if not s=="":
 		broadcast(s.split())
 		lastupdate = now.to_sec()
-
-	else: # broadcast any un-requested odometry updates
-		s = oculusprimesocket.replyBufferSearch("<state> distanceangle ")
-		if not s=="":
-			broadcast(s.split())
-			lastupdate = now.to_sec()
+		
+	rospy.sleep(0.01)
 
 # shutdown
 cleanup()
-
