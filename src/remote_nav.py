@@ -7,67 +7,10 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped
 import oculusprimesocket
 from move_base_msgs.msg import MoveBaseActionGoal
+from sensor_msgs.msg import LaserScan
 
 """
-        
-$ rostopic info /move_base/DWAPlannerROS/global_plan
-Type: nav_msgs/Path
 
-Publishers: 
- * /move_base (http://megatron:43851/)
-
-Subscribers: 
- * /dwa_base_controller (http://megatron:57946/)
-
-
-$ rosmsg show nav_msgs/Path
-std_msgs/Header header
-  uint32 seq
-  time stamp
-  string frame_id
-geometry_msgs/PoseStamped[] poses
-  std_msgs/Header header
-    uint32 seq
-    time stamp
-    string frame_id
-  geometry_msgs/Pose pose
-    geometry_msgs/Point position
-      float64 x
-      float64 y
-      float64 z
-    geometry_msgs/Quaternion orientation
-      float64 x
-      float64 y
-      float64 z
-      float64 w
-
-[example]
-header: 
-  seq: 120
-  stamp: 
-    secs: 1422435213
-    nsecs: 957139961
-  frame_id: odom
-poses: 
-  - 
-    header: 
-      seq: 0
-      stamp: 
-        secs: 1422435213
-        nsecs: 957139961
-      frame_id: odom
-    pose: 
-      position: 
-        x: 0.345847576204
-        y: -0.0319448157922
-        z: 0.0
-      orientation: 
-        x: 0.0
-        y: 0.0
-        z: 0.0195463562852
-        w: 0.999808951728
-        
-frame is odom - just map to amcl localization?
 
 """
 
@@ -81,6 +24,8 @@ amclx = 0
 amcly = 0
 amclth = 0
 globalpath = []
+scannum = 0
+scanpoints = []
 
 def mapcallBack(data):
 	global lockfilepath
@@ -135,6 +80,8 @@ def amclPoseCallback(data):
 	oculusprimesocket.sendString("state rosamcl "+str(amclx)+"_"+str(amcly)+"_"+str(amclth))
 	if len(globalpath) > 0:
 		sendGlobalPath()
+	if len(scanpoints) > 0:
+		sendScan()
 	
 def goalCallback(d):
 	data = d.goal.target_pose
@@ -215,6 +162,29 @@ def publishgoal(str):
 
 	goal_pub.publish(goal)
 
+def scanCallback(data):
+	global scannum, scanpoints
+	scannum += 1
+	if scannum < 5:
+		return
+	scannum=0
+	scanpoints = data.ranges
+
+def sendScan():
+	global scanpoints
+	
+	s = "state rosscan "
+	
+	step = 8 
+	size = len(scanpoints)
+	i = 0
+	while i < size-step:
+		s += str(round(scanpoints[i],3))+","
+		i += step
+	s += str(round(scanpoints[size-1],3))
+	oculusprimesocket.sendString(s)
+	
+
 # main
 
 oculusprimesocket.connect()	
@@ -228,12 +198,14 @@ oculusprimesocket.sendString("state delete roscurrentgoal")
 oculusprimesocket.sendString("state delete rosamcl")
 oculusprimesocket.sendString("state delete rosglobalpath")
 oculusprimesocket.sendString("state delete rosmapinfo")
+oculusprimesocket.sendString("state delete rosscan")
 	
 rospy.Subscriber("map", OccupancyGrid, mapcallBack)
 rospy.Subscriber("odom", Odometry, odomCallback)
 rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, amclPoseCallback)
 rospy.Subscriber("move_base/goal", MoveBaseActionGoal, goalCallback)
-rospy.Subscriber("move_base/DWAPlannerROS/global_plan", Path, globalPathCallback) # too slow
+rospy.Subscriber("move_base/DWAPlannerROS/global_plan", Path, globalPathCallback) 
+rospy.Subscriber("scan", LaserScan, scanCallback)
 initpose_pub = rospy.Publisher('initialpose', PoseWithCovarianceStamped, queue_size=10)
 goal_pub = rospy.Publisher('move_base/goal', MoveBaseActionGoal, queue_size=10)
 
