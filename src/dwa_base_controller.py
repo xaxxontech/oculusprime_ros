@@ -211,8 +211,6 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 		# nextmove = rospy.get_time() + 0.5
 	
 def cleanup():
-	oculusprimesocket.sendString("odometrystop")
-	oculusprimesocket.sendString("state stopbetweenmoves false")
 	oculusprimesocket.sendString("move stop")
 
 

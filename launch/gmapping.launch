@@ -4,10 +4,10 @@
 
   <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
     <param name="odom_frame" value="odom"/>
-    <param name="map_update_interval" value="30.0"/>
+    <param name="map_update_interval" value="5.0"/> <!-- 30.0 -->
     <!-- Set maxUrange < actual maximum range of the Laser -->
-    <param name="maxRange" value="5.0"/>
-    <param name="maxUrange" value="4.5"/>
+    <param name="maxRange" value="8.0"/>  <!-- 5.0 -->
+    <param name="maxUrange" value="6.0"/> <!-- 4.5 -->
     <param name="sigma" value="0.05"/>
     <param name="kernelSize" value="1"/>
     <param name="lstep" value="0.05"/>
@@ -24,14 +24,19 @@
     <param name="angularUpdate" value="0.436"/>
     <param name="temporalUpdate" value="-1.0"/>
     <param name="resampleThreshold" value="0.5"/>
-    <param name="particles" value="80"/>
-  <!--
+    <param name="particles" value="100"/>  <!-- 80.0 -->
+    
+    <param name="throttle_scans" value="2" /> <!-- default is 1 (no throttle) -->
+    
+<!--
     <param name="xmin" value="-50.0"/>
     <param name="ymin" value="-50.0"/>
     <param name="xmax" value="50.0"/>
     <param name="ymax" value="50.0"/>
+-->
+<!--
   make the starting size small for the benefit of the Android client's memory...
-  -->
+-->
     <param name="xmin" value="-1.0"/>
     <param name="ymin" value="-1.0"/>
     <param name="xmax" value="1.0"/>

@@ -21,7 +21,7 @@ now = 0
 
 def broadcast(s):
 	global before, pos, now
-	now = rospy.Time.now() - rospy.Duration(0.05) # subtract socket + serial + fifo read lag
+	now = rospy.Time.now() - rospy.Duration(0.075) # 0.05 subtract socket + serial + fifo read lag 0.075 = tested with rviz odom only 
 	dt = (now-before).to_sec()
 	before = now
 
@@ -69,8 +69,6 @@ def broadcast(s):
 
 def cleanup():
 	oculusprimesocket.sendString("odometrystop")
-	oculusprimesocket.sendString("state stopbetweenmoves false")
-
 
 # MAIN
 
@@ -81,13 +79,12 @@ odom_pub = rospy.Publisher('odom', Odometry, queue_size=10)
 rospy.on_shutdown(cleanup)
 oculusprimesocket.connect()
 oculusprimesocket.sendString("odometrystart")
-oculusprimesocket.sendString("state stopbetweenmoves true")
 broadcast("* * 0 0".split()) # broadcast zero odometry baseline
 
 while not rospy.is_shutdown():
 
 	t = rospy.get_time()
-	if t-lastupdate > updateinterval:  # requeset odometry update
+	if t-lastupdate > updateinterval:  # request odometry update
 		oculusprimesocket.sendString("odometryreport")
 
 	s = oculusprimesocket.replyBufferSearch("<state> distanceangle ")

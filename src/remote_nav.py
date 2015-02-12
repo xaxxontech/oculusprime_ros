@@ -40,9 +40,13 @@ sendinfodelay = 1.0
 lastsendinfo = 0
 move_base = None
 goalseek = False
-xoffst = None
-yoffst = None
-thoffst = None
+xoffst = 0
+yoffst = 0
+thoffst = 0
+recoveryrotate = False
+goal = None
+turnspeed = 100
+secondspertwopi = 4.2 # calibration, automate? (do in java, faster)
 
 def mapcallBack(data):
 	global lockfilepath
@@ -72,6 +76,7 @@ def mapcallBack(data):
 	s += str(data.info.origin.position.y)+","+str(th)+","+str(rospy.get_time())
 	
 	oculusprimesocket.sendString(s)
+	oculusprimesocket.sendString("state rosmapupdated true")
 
 def odomCallback(data):
 	 global odomx, odomy, odomth
@@ -82,7 +87,7 @@ def odomCallback(data):
 	 odomth = tf.transformations.euler_from_quaternion(quaternion)[2]
 		
 def amclPoseCallback(data):
-	global odomx, odomy, odomth, goalseek
+	global odomx, odomy, odomth, goalseek, xoffst, yoffst, thoffst
 	
 	if not goalseek:
 		amclx = data.pose.pose.position.x
@@ -95,16 +100,16 @@ def amclPoseCallback(data):
 		yoffst = amcly - odomy
 		thoffst = amclth - odomth
 		
-		s = "state rosamcl "
-		s += str(round(xoffst, 3))+","+str(round(yoffst,3))+","+str(round(thoffst,3))+","
-		s +=  str(round(odomx,3))+","+str(round(odomy,3))+","+str(round(odomth,3))
-
-		oculusprimesocket.sendString(s)
-		
-		if len(globalpath) > 0:
-			sendGlobalPath()
-		if len(scanpoints) > 0:
-			sendScan()
+		# s = "state rosamcl "
+		# s += str(round(xoffst, 3))+","+str(round(yoffst,3))+","+str(round(thoffst,3))+","
+		# s +=  str(round(odomx,3))+","+str(round(odomy,3))+","+str(round(odomth,3))
+# 
+		# oculusprimesocket.sendString(s)
+		# 
+		# if len(globalpath) > 0:
+			# sendGlobalPath()
+		# if len(scanpoints) > 0:
+			# sendScan()
 		
 def feedbackCallback(d):
 	global odomx, odomy, odomth, xoffst, yoffst, thoffst
@@ -119,7 +124,6 @@ def feedbackCallback(d):
 	yoffst = amcly - odomy
 	thoffst = amclth - odomth
 	
-	
 def goalCallback(d):
 	data = d.goal.target_pose
 	x = data.pose.position.x
@@ -132,6 +136,7 @@ def goalCallback(d):
 def globalPathCallback(data):
 	global globalpath
 	globalpath = data.poses
+	recoveryrotate = False
 	
 def sendGlobalPath():
 	global globalpath
@@ -174,7 +179,7 @@ def publishinitialpose(str):
 	initpose_pub.publish(pose)
 		
 def publishgoal(str):
-	global move_base
+	global move_base, goal
 	
 	s = str.split("_")
 	x = float(s[0])
@@ -256,11 +261,13 @@ while not rospy.is_shutdown():
 	if re.search("rosinitialpose", s):
 		oculusprimesocket.sendString("state delete rosinitialpose")
 		publishinitialpose(s.split()[2])
+		recoveryrotate = False
 
 	elif re.search("rossetgoal", s):
 		oculusprimesocket.sendString("state delete rossetgoal")
 		publishgoal(s.split()[2])
 		goalseek = True
+		recoveryrotate = False
 	
 	elif re.search("rosgoalcancel true", s):
 		move_base.cancel_goal()
@@ -268,6 +275,7 @@ while not rospy.is_shutdown():
 		oculusprimesocket.sendString("messageclients cancel navigation goal")
 		oculusprimesocket.sendString("state delete roscurrentgoal")
 		oculusprimesocket.sendString("state delete rosgoalcancel")
+		recoveryrotate = False
 		
 	t = rospy.get_time()
 	if t - lastsendinfo > sendinfodelay:
@@ -276,15 +284,15 @@ while not rospy.is_shutdown():
 		if len(scanpoints) > 0:
 			sendScan()
 			
-		if goalseek and not xoffst == None:
-			s = "state rosamcl "
-			s += str(round(xoffst, 3))+","+str(round(yoffst,3))+","+str(round(thoffst,3))+","
-			s +=  str(round(odomx,3))+","+str(round(odomy,3))+","+str(round(odomth,3))
+		# if goalseek and not xoffst == None:
+		s = "state rosamcl "
+		s += str(round(xoffst, 3))+","+str(round(yoffst,3))+","+str(round(thoffst,3))+","
+		s +=  str(round(odomx,3))+","+str(round(odomy,3))+","+str(round(odomth,3))
 
-			oculusprimesocket.sendString(s)
-			
-			if len(globalpath) > 0:
-				sendGlobalPath()
+		oculusprimesocket.sendString(s)
+		
+		if len(globalpath) > 0:
+			sendGlobalPath()
 			
 	if goalseek: 
 		state = move_base.get_state()
@@ -293,9 +301,20 @@ while not rospy.is_shutdown():
 			oculusprimesocket.sendString("state delete roscurrentgoal")
 			goalseek = False
 		elif state == GoalStatus.ABORTED: 
-			oculusprimesocket.sendString("messageclients navigation goal ABORTED")
-			oculusprimesocket.sendString("state delete roscurrentgoal")
-			goalseek = False
+			if not recoveryrotate:
+				recoveryrotate = True
+				oculusprimesocket.sendString("messageclients recovery rotation")
+				oculusprimesocket.sendString("speed "+str(turnspeed) )
+				oculusprimesocket.sendString("move right")
+				rospy.sleep(secondspertwopi)
+				oculusprimesocket.sendString("move stop")
+				oculusprimesocket.waitForReplySearch("<state> direction stop")
+				rospy.sleep(1)
+				move_base.send_goal(goal)
+			else:
+				oculusprimesocket.sendString("messageclients navigation goal ABORTED")
+				oculusprimesocket.sendString("state delete roscurrentgoal")
+				goalseek = False
 		
 		
 	rospy.sleep(0.01) # this really helps with cpu load

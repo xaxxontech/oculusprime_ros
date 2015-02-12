@@ -12,18 +12,32 @@ with launch file still running on robot, save map using command:
    rosrun map_server map_saver
 This will save bitmap file map.pgm in current directory
 
-change name to maps/my_map.pgm to use with dwa_nav.launch
+change name to maps/my_map.pgm to use with navigation launch files
 
 -->
 
 <launch>
 	<param name="robot_description" textfile="$(find oculusprime)/description/oculusprime.urdf" />
+
+
 	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" />
 	<node pkg="tf" type="static_transform_publisher" name="base_to_xtion_broadcaster" 
 		args="-0.054 0.02 0.29 0 0 0 base_link camera_depth_frame 100" />
 
 	<include file="$(find oculusprime)/launch/fake_laser.launch" />
 	<include file="$(find oculusprime)/launch/gmapping.launch" />	
+	
+	
+	<node pkg="oculusprime" type="map_remote.py" name="map_remote" />
+
+	<!-- move_base, needs more cpu, comment out above map_remote.py node -->
+<!--
+	<node pkg="oculusprime" type="remote_nav.py" name="map_remote" />
+	<include file="$(find oculusprime)/launch/move_base_dwa.launch" />
+	<node pkg="oculusprime" type="global_path_follower.py" name="global_path_follower" output="screen"/> 
+-->
+
+
 </launch>
 
 
