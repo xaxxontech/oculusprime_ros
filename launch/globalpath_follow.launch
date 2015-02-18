@@ -14,10 +14,8 @@
 
 	<include file="$(find oculusprime)/launch/fake_laser.launch" />
 	
-	<arg name="map" default="my_map.yaml" />
-<!--
 	<arg name="map" default="map.yaml" />
--->
+
 	<node name="map_server" pkg="map_server" type="map_server" args="$(find oculusprime)/maps/$(arg map)"/>
 	<include file="$(find oculusprime)/launch/amcl.launch" />
 	

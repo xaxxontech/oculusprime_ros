@@ -78,6 +78,7 @@ oculusprimesocket.sendString("state delete rosamcl")
 oculusprimesocket.sendString("state delete rosglobalpath")
 oculusprimesocket.sendString("state delete rosmapinfo")
 oculusprimesocket.sendString("state delete rosscan")
+oculusprimesocket.sendString("state delete rosmapupdated")
 
 rospy.init_node('map_remote', anonymous=False)
 

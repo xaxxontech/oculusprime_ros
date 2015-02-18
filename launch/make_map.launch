@@ -1,20 +1,3 @@
-<!-- 
-
-run this launch file on the robot
-
-to monitor map building progress, on a remote machine, run:  
-   rosrun rviz rviz -d `rospack find oculusprime`/gmapping.rviz
-   (or identical map_rv command, if available)
-   
-drive using oculus prime remote client (videosetting medium)
-
-with launch file still running on robot, save map using command:
-   rosrun map_server map_saver
-This will save bitmap file map.pgm in current directory
-
-change name to maps/my_map.pgm to use with navigation launch files
-
--->
 
 <launch>
 	<param name="robot_description" textfile="$(find oculusprime)/description/oculusprime.urdf" />
@@ -30,7 +13,7 @@ change name to maps/my_map.pgm to use with navigation launch files
 	
 	<node pkg="oculusprime" type="map_remote.py" name="map_remote" />
 
-	<!-- move_base, needs more cpu, comment out above map_remote.py node -->
+	<!-- adds move_base, needs more cpu, comment out above map_remote.py node -->
 <!--
 	<node pkg="oculusprime" type="remote_nav.py" name="map_remote" />
 	<include file="$(find oculusprime)/launch/move_base_dwa.launch" />
