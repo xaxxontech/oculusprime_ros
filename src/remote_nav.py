@@ -225,7 +225,11 @@ def sendScan():
 	oculusprimesocket.sendString(s)
 
 def cleanup():
-	oculusprimesocket.sendString("state delete navigationenabled")	
+	oculusprimesocket.sendString("state delete navigationenabled")		
+	oculusprimesocket.sendString("state delete roscurrentgoal")
+	oculusprimesocket.sendString("state delete rosamcl")
+	oculusprimesocket.sendString("state delete rosglobalpath")
+	oculusprimesocket.sendString("state delete rosscan")
 	oculusprimesocket.sendString("messageclients navigation disabled")	
 
 # main
@@ -270,6 +274,7 @@ while not rospy.is_shutdown():
 
 	elif re.search("rossetgoal", s):
 		oculusprimesocket.sendString("state delete rossetgoal")
+		globalpath = []
 		publishgoal(s.split()[2])
 		goalseek = True
 		recoveryrotate = False
@@ -280,6 +285,7 @@ while not rospy.is_shutdown():
 		oculusprimesocket.sendString("messageclients cancel navigation goal")
 		oculusprimesocket.sendString("state delete roscurrentgoal")
 		oculusprimesocket.sendString("state delete rosgoalcancel")
+		globalpath = []
 		recoveryrotate = False
 		
 	t = rospy.get_time()
