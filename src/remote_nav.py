@@ -24,7 +24,6 @@ roscurrentgoal, rosmapinfo unchanged
 
 send global path (without amcl offset), scan data, odom every 0.5 sec
 
-
 """
 
 
@@ -132,6 +131,7 @@ def goalCallback(d):
 	data.pose.orientation.z, data.pose.orientation.w )
 	th = tf.transformations.euler_from_quaternion(quaternion)[2]	
 	oculusprimesocket.sendString("state roscurrentgoal "+str(x)+","+str(y)+","+str(th))
+	oculusprimesocket.sendString("messageclients new navigation goal received");
 	
 def globalPathCallback(data):
 	global globalpath
@@ -223,7 +223,10 @@ def sendScan():
 		i += step
 	s += str(round(scanpoints[size-1],3))
 	oculusprimesocket.sendString(s)
-	
+
+def cleanup():
+	oculusprimesocket.sendString("state delete navigationenabled")	
+	oculusprimesocket.sendString("messageclients navigation disabled")	
 
 # main
 
@@ -253,6 +256,8 @@ initpose_pub = rospy.Publisher('initialpose', PoseWithCovarianceStamped, queue_s
 move_base = actionlib.SimpleActionClient("move_base", MoveBaseAction)
 move_base.wait_for_server()
 oculusprimesocket.sendString("messageclients navigation ready")
+oculusprimesocket.sendString("state navigationenabled true")
+rospy.on_shutdown(cleanup)
 
 lasttext = ""
 

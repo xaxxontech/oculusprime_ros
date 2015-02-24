@@ -185,10 +185,10 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 	
 	if goalrotate:
 		rospy.sleep(1) 
-			
-	
+				
 def cleanup():
 	oculusprimesocket.sendString("move stop")
+	oculusprimesocket.sendString("state delete navigationenabled")
 
 
 # MAIN

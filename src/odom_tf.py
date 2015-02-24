@@ -12,8 +12,8 @@ from nav_msgs.msg import Odometry
 import oculusprimesocket
 
 
-lastupdate = 0
-updateinterval = 0.25
+# lastupdate = 0
+# updateinterval = 0.25
 pos = [0.0, 0.0, 0.0]
 before = 0
 now = 0
@@ -68,7 +68,10 @@ def broadcast(s):
 	odom_pub.publish(odom)
 
 def cleanup():
+	oculusprimesocket.sendString("state delete odometrybroadcast")
 	oculusprimesocket.sendString("odometrystop")
+	oculusprimesocket.sendString("state delete navigationenabled")
+
 
 # MAIN
 
@@ -78,21 +81,22 @@ br = tf.TransformBroadcaster()
 odom_pub = rospy.Publisher('odom', Odometry, queue_size=10)
 rospy.on_shutdown(cleanup)
 oculusprimesocket.connect()
+oculusprimesocket.sendString("state odometrybroadcast 250")  # ms
 oculusprimesocket.sendString("odometrystart")
 broadcast("* * 0 0".split()) # broadcast zero odometry baseline
 
 while not rospy.is_shutdown():
 
-	t = rospy.get_time()
-	if t-lastupdate > updateinterval:  # request odometry update
-		oculusprimesocket.sendString("odometryreport")
+	# t = rospy.get_time()
+	# if t-lastupdate > updateinterval:  # request odometry update
+		# oculusprimesocket.sendString("odometryreport")
 
 	s = oculusprimesocket.replyBufferSearch("<state> distanceangle ")
 	if not s=="":
 		broadcast(s.split())
-		lastupdate = now.to_sec()
+		# lastupdate = now.to_sec()
 		
-	rospy.sleep(0.01)
+	rospy.sleep(0.005) # was 0.01
 
 # shutdown
 cleanup()
