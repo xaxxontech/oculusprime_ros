@@ -12,7 +12,10 @@
 
 	<include file="$(find oculusprime)/launch/move_base_dwa.launch" />
 
-	<include file="$(find oculusprime)/launch/fake_laser.launch" />
+	<include file="$(find oculusprime)/launch/fake_laser.launch" >
+		<arg name="skipframes" value="2" />
+		<arg name="fpscan_enable" value="True" />
+	</include>
 	
 	<arg name="map" default="map.yaml" />
 

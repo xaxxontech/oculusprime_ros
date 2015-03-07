@@ -7,7 +7,10 @@
 	<node pkg="tf" type="static_transform_publisher" name="base_to_xtion_broadcaster" 
 		args="-0.054 0.02 0.29 0 0 0 base_link camera_depth_frame 100" />
 
-	<include file="$(find oculusprime)/launch/fake_laser.launch" />
+	<include file="$(find oculusprime)/launch/fake_laser.launch" >
+		<arg name="skipframes" value="1" />
+		<arg name="fpscan_enable" value="False" />
+	</include>
 	<include file="$(find oculusprime)/launch/gmapping.launch" />	
 	
 	

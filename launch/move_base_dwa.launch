@@ -5,6 +5,7 @@
     <rosparam file="$(find oculusprime)/params/costmap_common_params.yaml" command="load" ns="local_costmap" />
     <rosparam file="$(find oculusprime)/params/local_costmap_params.yaml" command="load" />
     <rosparam file="$(find oculusprime)/params/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find oculusprime)/params/global_planner_params.yaml" command="load" />
 
     <rosparam file="$(find oculusprime)/params/dwa_local_planner_params.yaml" command="load" />
     <rosparam file="$(find oculusprime)/params/move_base_params.yaml" command="load" />

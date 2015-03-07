@@ -24,7 +24,7 @@ from geometry_msgs.msg import PoseWithCovarianceStamped
 from actionlib_msgs.msg import GoalStatusArray
 from move_base_msgs.msg import MoveBaseActionGoal
 
-listentime = 0.5 # allows odom + amcl to catch up
+listentime = 0.5 # 0.6 # allows odom + amcl to catch up
 nextmove = 0
 odomx = 0
 odomy = 0
@@ -33,16 +33,18 @@ targetx = 0
 targety = 0
 targetth = 0
 followpath = False
+pathid = None
 goalth = 0 
-minturn = math.radians(6) # 0.21 minimum for pwm 255
+initialturn = False
+waitonaboutface = 0
+minturn = math.radians(8) # (was 6) -- 0.21 minimum for pwm 255
+minlinear = 0.08 # was 0.05
+maxlinear = 0.5
 lastpath = 0  # refers to localpath
 goalpose = False
 goalseek = False
-linearspeed = 150
-secondspermeter = 3.2 # calibration, automate? (do in java, faster)
-turnspeed = 100
-secondspertwopi = 4.2 # calibration, automate? (do in java, faster)
-initth = 0
+meterspersec = 0.33 # linear speed
+degperms = 0.0857 # turnspeed
 tfth = 0
 globalpathposenum = 20 # just right
 listener = None
@@ -54,7 +56,8 @@ def pathCallback(data): # local path
 	goalpose = False
 	
 def globalPathCallback(data):
-	global targetx, targety, targetth , followpath
+	global targetx, targety, targetth , followpath, pathid
+	
 	n = len(data.poses)
 	if n < 5:
 		return
@@ -71,6 +74,7 @@ def globalPathCallback(data):
 	targetth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
 	followpath = True
+	pathid = data.header.seq
 
 def odomCallback(data):
 	global odomx, odomy, odomth
@@ -92,15 +96,17 @@ def odomCallback(data):
 def intialPoseCallback(data):
 	# do full rotation on pose estimate, to hone-in amcl
 	rospy.sleep(0.5) # let amcl settle
-	oculusprimesocket.sendString("speed "+str(turnspeed) )
-	oculusprimesocket.sendString("move right")
-	rospy.sleep(secondspertwopi) # full rotation
-	oculusprimesocket.sendString("move stop")
+	# oculusprimesocket.sendString("speed "+str(turnspeed) )
+	# oculusprimesocket.sendString("move right")
+	# rospy.sleep(secondspertwopi) # full rotation
+	# oculusprimesocket.sendString("move stop")
+	oculusprimesocket.clearIncoming()
+	oculusprimesocket.sendString("right 360")
 	oculusprimesocket.waitForReplySearch("<state> direction stop")
 	# rospy.sleep(1) # let amcl settle << TODO: this is in separate thread so does nothing!
 	
 def goalCallback(d):
-	global goalth, goalpose, lastpath
+	global goalth, goalpose, lastpath, initialturn, followpath, nextmove
 
 	# to prevent immediately rotating wrongly towards new goal direction 
 	lastpath = rospy.get_time()
@@ -111,6 +117,9 @@ def goalCallback(d):
 	quaternion = ( data.pose.orientation.x, data.pose.orientation.y,
 	data.pose.orientation.z, data.pose.orientation.w )
 	goalth = tf.transformations.euler_from_quaternion(quaternion)[2]
+	initialturn = True
+	followpath = False
+	nextmove = lastpath + 2 # sometimes globalpath still points at previoius goal
 	
 def goalStatusCallback(data):
 	global goalseek
@@ -122,8 +131,10 @@ def goalStatusCallback(data):
 		goalseek = True
 
 def move(ox, oy, oth, tx, ty, tth, gth):
-	global followpath, goalpose, tfth, nextmove
+	global followpath, goalpose, tfth, pathid, initialturn, waitonaboutface
 	global odomx, odomy, odomth
+
+	currentpathid = pathid
 
 	# determine xy deltas for move
 	distance = 0
@@ -151,41 +162,59 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 		dth = math.pi*2 + dth
 		
 	# force minimums	
-	if distance > 0 and distance < 0.05:
-		distance = 0.05
+	if distance > 0 and distance < minlinear:
+		distance = minlinear
+		
+	if distance > maxlinear:
+		distance = maxlinear
 
-	# supposed to reduce zig zagging
-	if dth < minturn*0.3 and dth > -minturn*0.3:
+	# supposed to reduce zig zagging  (was 0.3)
+	if dth < minturn*0.5 and dth > -minturn*0.5:
 		dth = 0
-	elif dth >= minturn*0.3 and dth < minturn:
+	elif dth >= minturn*0.5 and dth < minturn:
 		dth = minturn
-	elif dth <= -minturn*0.3 and dth > -minturn:
+	elif dth <= -minturn*0.5 and dth > -minturn:
 		dth = -minturn
 
+	oculusprimesocket.clearIncoming()
+
+	# if turning more than 120 deg, inch forward, make sure not transient obstacle (like door transfer)
+	if abs(dth) > 2.0944 and not goalrotate and not initialturn and waitonaboutface < 1:
+		initialturn = False
+		# oculusprimesocket.sendString("move forward")
+		# rospy.sleep(0.15*secondspermeter)
+		# oculusprimesocket.sendString("move stop")
+		oculusprimesocket.sendString("forward 0.25")
+		oculusprimesocket.waitForReplySearch("<state> direction stop")
+		waitonaboutface += 1 # only do this once
+		rospy.sleep(1)
+		return
+		
+	waitonaboutface = 0
+	initialturn = False
+
+	if not pathid == currentpathid:
+		return
 
 	if dth > 0:
-		oculusprimesocket.sendString("speed "+str(turnspeed) )
-		oculusprimesocket.sendString("move left")
-		rospy.sleep(dth/(2.0*math.pi) * secondspertwopi)
-		oculusprimesocket.sendString("move stop")
+		oculusprimesocket.sendString("left " + str(int(math.degrees(dth))) ) 
 		oculusprimesocket.waitForReplySearch("<state> direction stop")
 	elif dth < 0:
-		oculusprimesocket.sendString("speed "+str(turnspeed) )
-		oculusprimesocket.sendString("move right")
-		rospy.sleep(-dth/(2.0*math.pi) * secondspertwopi)
-		oculusprimesocket.sendString("move stop")
+		oculusprimesocket.sendString("right " +str(int(math.degrees(-dth))) )
 		oculusprimesocket.waitForReplySearch("<state> direction stop")
 
 	if distance > 0:
-		oculusprimesocket.sendString("speed "+str(linearspeed) )
-		oculusprimesocket.sendString("move forward")
-		rospy.sleep(distance*secondspermeter)
-		oculusprimesocket.sendString("move stop")
-		oculusprimesocket.waitForReplySearch("<state> direction stop")
-	
-	if goalrotate:
-		rospy.sleep(1) 
-				
+		# oculusprimesocket.sendString("move forward")
+		# rospy.sleep(distance*secondspermeter)
+		# oculusprimesocket.sendString("move stop")
+		oculusprimesocket.sendString("forward "+str(distance))
+		rospy.sleep(distance/meterspersec)
+		# oculusprimesocket.waitForReplySearch("<state> direction stop")
+
+	# if goalrotate:
+		# rospy.sleep(1) 
+		
+			
 def cleanup():
 	oculusprimesocket.sendString("move stop")
 	oculusprimesocket.sendString("state delete navigationenabled")
@@ -196,6 +225,7 @@ def cleanup():
 rospy.init_node('dwa_base_controller', anonymous=False)
 listener = tf.TransformListener()
 oculusprimesocket.connect()
+rospy.on_shutdown(cleanup)
 
 rospy.Subscriber("odom", Odometry, odomCallback)
 rospy.Subscriber("move_base/DWAPlannerROS/local_plan", Path, pathCallback)
@@ -203,15 +233,21 @@ rospy.Subscriber("move_base/goal", MoveBaseActionGoal, goalCallback)
 rospy.Subscriber("move_base/status", GoalStatusArray, goalStatusCallback)
 rospy.Subscriber("move_base/DWAPlannerROS/global_plan", Path, globalPathCallback)
 rospy.Subscriber("initialpose", PoseWithCovarianceStamped, intialPoseCallback)
-rospy.on_shutdown(cleanup)
+
+oculusprimesocket.sendString("state odomturndpms "+str(degperms))  # degrees per ms 
+oculusprimesocket.sendString("state odomturnpwm 100")  # approx starting point smooth floor
+oculusprimesocket.sendString("state odomlinearmpms "+str(meterspersec/1000)) 
+oculusprimesocket.sendString("state odomlinearpwm 150")  # approx starting point
+
+# oculusprimesocket.sendString("speed "+str(linearspeed) )
 
 while not rospy.is_shutdown():
 	t = rospy.get_time()
 	
 	if t >= nextmove:
 		# nextmove = t + listentime
-		if goalseek and (followpath or goalpose):
-			move(odomx, odomy, odomth, targetx, targety, targetth, goalth)
+		if goalseek and (followpath or goalpose) and not (initialturn and not followpath):
+			move(odomx, odomy, odomth, targetx, targety, targetth, goalth) # blocking
 			nextmove = rospy.get_time() + listentime
 			followpath = False
 	

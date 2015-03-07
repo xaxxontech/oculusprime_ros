@@ -44,6 +44,6 @@ def imgrect_callBack(data):
 	
 
 rospy.init_node('openni_imgrect_to_shm', anonymous=False)
-rospy.Subscriber("camera/depth/image_rect", Image, imgrect_callBack)
+rospy.Subscriber("camera/depth/image_raw", Image, imgrect_callBack)
 
 rospy.spin()
