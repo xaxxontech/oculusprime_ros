@@ -220,7 +220,9 @@ def cleanup():
 	oculusprimesocket.sendString("state delete rosamcl")
 	oculusprimesocket.sendString("state delete rosglobalpath")
 	oculusprimesocket.sendString("state delete rosscan")
+	# oculusprimesocket.sendString("state delete navigationroute")
 	oculusprimesocket.sendString("messageclients navigation disabled")	
+
 
 # main
 

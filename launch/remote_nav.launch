@@ -1,7 +1,4 @@
 <launch>
-<!--
-	<include file="$(find oculusprime)/launch/dwa_nav.launch" />
--->
 
 	<include file="$(find oculusprime)/launch/globalpath_follow.launch" />
 	

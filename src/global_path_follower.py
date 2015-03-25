@@ -24,7 +24,7 @@ from geometry_msgs.msg import PoseWithCovarianceStamped
 from actionlib_msgs.msg import GoalStatusArray
 from move_base_msgs.msg import MoveBaseActionGoal
 
-listentime = 0.5 # 0.6 # allows odom + amcl to catch up
+listentime = 0.6 # 0.6 # allows odom + amcl to catch up
 nextmove = 0
 odomx = 0
 odomy = 0
@@ -94,16 +94,14 @@ def odomCallback(data):
 		pass	
 
 def intialPoseCallback(data):
-	# do full rotation on pose estimate, to hone-in amcl
+	if data.pose.pose.position.x == 0 and data.pose.pose.position.y == 0:
+		return
+	# do full rotation on pose estimate, to hone-in amcl (if not docked)
 	rospy.sleep(0.5) # let amcl settle
-	# oculusprimesocket.sendString("speed "+str(turnspeed) )
-	# oculusprimesocket.sendString("move right")
-	# rospy.sleep(secondspertwopi) # full rotation
-	# oculusprimesocket.sendString("move stop")
-	oculusprimesocket.clearIncoming()
+	oculusprimesocket.clearIncoming()  # why?
 	oculusprimesocket.sendString("right 360")
 	oculusprimesocket.waitForReplySearch("<state> direction stop")
-	# rospy.sleep(1) # let amcl settle << TODO: this is in separate thread so does nothing!
+
 	
 def goalCallback(d):
 	global goalth, goalpose, lastpath, initialturn, followpath, nextmove
