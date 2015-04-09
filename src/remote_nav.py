@@ -215,7 +215,8 @@ def sendScan():
 	oculusprimesocket.sendString(s)
 
 def cleanup():
-	oculusprimesocket.sendString("state navigationenabled false")		
+	# oculusprimesocket.sendString("state navigationenabled false")		
+	# oculusprimesocket.sendString("state delete navigationenabled")		
 	oculusprimesocket.sendString("state delete roscurrentgoal")
 	oculusprimesocket.sendString("state delete rosamcl")
 	oculusprimesocket.sendString("state delete rosglobalpath")
@@ -249,12 +250,14 @@ rospy.Subscriber("move_base/DWAPlannerROS/global_plan", Path, globalPathCallback
 rospy.Subscriber("scan", LaserScan, scanCallback)
 rospy.Subscriber("move_base/feedback", MoveBaseActionFeedback, feedbackCallback)
 initpose_pub = rospy.Publisher('initialpose', PoseWithCovarianceStamped, queue_size=10)
+rospy.on_shutdown(cleanup)
 
 move_base = actionlib.SimpleActionClient("move_base", MoveBaseAction)
 move_base.wait_for_server()
-oculusprimesocket.sendString("messageclients navigation ready")
-oculusprimesocket.sendString("state navigationenabled true")
-rospy.on_shutdown(cleanup)
+rospy.sleep(0.5)
+if not rospy.is_shutdown():
+	oculusprimesocket.sendString("messageclients navigation ready") 
+	oculusprimesocket.sendString("state navigationenabled true") 
 
 lasttext = ""
 
@@ -302,8 +305,8 @@ while not rospy.is_shutdown():
 		state = move_base.get_state()
 		if state == GoalStatus.SUCCEEDED: # error if not seeking goal
 			oculusprimesocket.sendString("messageclients navigation goal reached")
+			oculusprimesocket.sendString("state rosgoalstatus succeeded") # having this below the one below may have caused null pointer
 			oculusprimesocket.sendString("state delete roscurrentgoal")
-			oculusprimesocket.sendString("state rosgoalstatus succeeded")
 			goalseek = False
 		elif state == GoalStatus.ABORTED: 
 			if not recoveryrotate:
@@ -315,8 +318,8 @@ while not rospy.is_shutdown():
 				move_base.send_goal(goal)
 			else:
 				oculusprimesocket.sendString("messageclients navigation goal ABORTED")
-				oculusprimesocket.sendString("state delete roscurrentgoal")
 				oculusprimesocket.sendString("state rosgoalstatus aborted")
+				oculusprimesocket.sendString("state delete roscurrentgoal")
 				goalseek = False
 		
 		

@@ -48,6 +48,7 @@ degperms = 0.0857 # turnspeed
 tfth = 0
 globalpathposenum = 20 # just right
 listener = None
+dropfirstglobalpath = True
 
 def pathCallback(data): # local path
 	global goalpose, lastpath
@@ -56,7 +57,11 @@ def pathCallback(data): # local path
 	goalpose = False
 	
 def globalPathCallback(data):
-	global targetx, targety, targetth , followpath, pathid
+	global targetx, targety, targetth , followpath, pathid, dropfirstglobalpath
+	
+	if dropfirstglobalpath:
+		dropfirstglobalpath = False
+		return
 	
 	n = len(data.poses)
 	if n < 5:
@@ -118,6 +123,7 @@ def goalCallback(d):
 	initialturn = True
 	followpath = False
 	nextmove = lastpath + 2 # sometimes globalpath still points at previoius goal
+	dropfirstglobalpath = True
 	
 def goalStatusCallback(data):
 	global goalseek
@@ -244,7 +250,7 @@ while not rospy.is_shutdown():
 	
 	if t >= nextmove:
 		# nextmove = t + listentime
-		if goalseek and (followpath or goalpose) and not (initialturn and not followpath):
+		if goalseek and (followpath or goalpose) and not dropfirstglobalpath: # and not (initialturn and not followpath):
 			move(odomx, odomy, odomth, targetx, targety, targetth, goalth) # blocking
 			nextmove = rospy.get_time() + listentime
 			followpath = False
