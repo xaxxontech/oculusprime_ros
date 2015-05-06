@@ -71,6 +71,8 @@ def cleanup():
 	oculusprimesocket.sendString("state delete odometrybroadcast")
 	oculusprimesocket.sendString("odometrystop")
 	oculusprimesocket.sendString("state delete navigationenabled")
+	oculusprimesocket.sendString("log odom_tf.py disconnecting")  # goodbye 
+
 
 
 # MAIN
@@ -81,6 +83,7 @@ br = tf.TransformBroadcaster()
 odom_pub = rospy.Publisher('odom', Odometry, queue_size=10)
 rospy.on_shutdown(cleanup)
 oculusprimesocket.connect()
+oculusprimesocket.sendString("log odom_tf.py connected")  
 oculusprimesocket.sendString("state odometrybroadcast 250")  # ms
 oculusprimesocket.sendString("odometrystart")
 broadcast("* * 0 0".split()) # broadcast zero odometry baseline
@@ -97,6 +100,3 @@ while not rospy.is_shutdown():
 		# lastupdate = now.to_sec()
 		
 	rospy.sleep(0.005) # was 0.01
-
-# shutdown
-cleanup()

@@ -221,8 +221,9 @@ def cleanup():
 	oculusprimesocket.sendString("state delete rosamcl")
 	oculusprimesocket.sendString("state delete rosglobalpath")
 	oculusprimesocket.sendString("state delete rosscan")
+	oculusprimesocket.sendString("log remote_nav.py disconnecting")  # goodbye world
 	# oculusprimesocket.sendString("state delete navigationroute")
-	oculusprimesocket.sendString("messageclients navigation disabled")	
+	# oculusprimesocket.sendString("messageclients navigation disabled")	
 
 
 # main
@@ -234,13 +235,13 @@ rospy.init_node('remote_nav', anonymous=False)
 if os.path.exists(lockfilepath):
 	os.remove(lockfilepath)
 	
+oculusprimesocket.sendString("log remote_nav.py connected")  
 oculusprimesocket.sendString("state delete roscurrentgoal")
 oculusprimesocket.sendString("state delete rosamcl")
 oculusprimesocket.sendString("state delete rosglobalpath")
 oculusprimesocket.sendString("state delete rosmapinfo")
 oculusprimesocket.sendString("state delete rosscan")
 oculusprimesocket.sendString("state delete rosgoalstatus")
-oculusprimesocket.sendString("streamsettingsset med") # saves cpu on atom systems
 	
 rospy.Subscriber("map", OccupancyGrid, mapcallBack)
 rospy.Subscriber("odom", Odometry, odomCallback)
