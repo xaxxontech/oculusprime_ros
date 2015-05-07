@@ -70,7 +70,7 @@ def broadcast(s):
 def cleanup():
 	oculusprimesocket.sendString("state delete odometrybroadcast")
 	oculusprimesocket.sendString("odometrystop")
-	oculusprimesocket.sendString("state delete navigationenabled")
+	# oculusprimesocket.sendString("state delete navigationenabled")
 	oculusprimesocket.sendString("log odom_tf.py disconnecting")  # goodbye 
 
 

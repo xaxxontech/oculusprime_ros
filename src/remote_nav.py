@@ -258,7 +258,7 @@ move_base.wait_for_server()
 rospy.sleep(0.5)
 if not rospy.is_shutdown():
 	oculusprimesocket.sendString("messageclients navigation ready") 
-	oculusprimesocket.sendString("state navigationenabled true") 
+	oculusprimesocket.sendString("state navsystemstatus running") 
 
 lasttext = ""
 

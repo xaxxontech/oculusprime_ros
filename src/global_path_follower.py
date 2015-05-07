@@ -208,7 +208,7 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 			
 def cleanup():
 	# oculusprimesocket.sendString("move stop")
-	oculusprimesocket.sendString("state delete navigationenabled")
+	# oculusprimesocket.sendString("state delete navigationenabled")
 	oculusprimesocket.sendString("log global_path_follower.py disconnecting")   
 
 
