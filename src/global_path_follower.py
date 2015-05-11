@@ -43,8 +43,8 @@ maxlinear = 0.5
 lastpath = 0  # refers to localpath
 goalpose = False
 goalseek = False
-meterspersec = 0.33 # linear speed
-degperms = 0.0857 # turnspeed
+meterspersec = 0.33 # linear speed  TODO: get from java
+degperms = 0.0857 # turnspeed    TODO: get from java
 tfth = 0
 globalpathposenum = 20 # just right
 listener = None
@@ -227,10 +227,10 @@ rospy.Subscriber("move_base/DWAPlannerROS/global_plan", Path, globalPathCallback
 rospy.Subscriber("initialpose", PoseWithCovarianceStamped, intialPoseCallback)
 
 oculusprimesocket.sendString("log global_path_follower.py connected") 
-oculusprimesocket.sendString("state odomturndpms "+str(degperms))  # degrees per ms 
-oculusprimesocket.sendString("state odomturnpwm 100")  # approx starting point smooth floor
-oculusprimesocket.sendString("state odomlinearmpms "+str(meterspersec/1000)) 
-oculusprimesocket.sendString("state odomlinearpwm 150")  # approx starting point
+# oculusprimesocket.sendString("state odomturndpms "+str(degperms))  # degrees per ms 
+# oculusprimesocket.sendString("state odomturnpwm 100")  # approx starting point smooth floor
+# oculusprimesocket.sendString("state odomlinearmpms "+str(meterspersec/1000)) 
+# oculusprimesocket.sendString("state odomlinearpwm 150")  # approx starting point
 
 # oculusprimesocket.sendString("speed "+str(linearspeed) )
 
