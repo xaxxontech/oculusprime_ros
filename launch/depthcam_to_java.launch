@@ -1,8 +1,14 @@
 <launch>
   <!-- Launch the OpenNI drivers -->
 
+<!--
 	<include file="$(find openni2_launch)/launch/openni2.launch" >
 	</include>
+-->
+
+	<include file="$(find oculusprime)/launch/openni2_320.launch" >
+	</include>
+
 	
 	<node pkg="oculusprime" type="openni_imgrect_to_shm.py" name="openni_imgrect_to_shm" 
 		required="true" />

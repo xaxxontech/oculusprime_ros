@@ -48,12 +48,16 @@ def mapcallBack(data):
 	oculusprimesocket.sendString("state rosmapupdated true")
 
 def scanCallback(data):
-	global scannum, scanpoints
-	scannum += 1
-	if scannum < 5:
-		return
-	scannum=0
-	scanpoints = data.ranges
+	global firstscan
+	firstscan.unregister()
+	oculusprimesocket.sendString("state navsystemstatus mapping") 
+	
+	# global scannum, scanpoints
+	# scannum += 1
+	# if scannum < 5:
+		# return
+	# scannum=0
+	# scanpoints = data.ranges
 
 def sendScan():
 	global scanpoints
@@ -80,9 +84,9 @@ oculusprimesocket.sendString("state delete rosmapinfo")
 oculusprimesocket.sendString("state delete rosscan")
 oculusprimesocket.sendString("state delete rosmapupdated")
 
-oculusprimesocket.sendString("state odomturndpms 0.06")  # degrees per ms
-oculusprimesocket.sendString("state odomturnpwm 65")  # measured, approx starting point smooth floor
-oculusprimesocket.sendString("speed 150") # linear speed
+# oculusprimesocket.sendString("state odomturndpms 0.06")  # degrees per ms
+# oculusprimesocket.sendString("state odomturnpwm 65")  # measured, approx starting point smooth floor
+# oculusprimesocket.sendString("speed 150") # linear speed
 
 rospy.init_node('map_remote', anonymous=False)
 
@@ -90,7 +94,8 @@ if os.path.exists(lockfilepath):
 	os.remove(lockfilepath)
 	
 rospy.Subscriber("map", OccupancyGrid, mapcallBack)
-# rospy.Subscriber("scan", LaserScan, scanCallback)
+firstscan = rospy.Subscriber("scan", LaserScan, scanCallback)
+
 
 
 while not rospy.is_shutdown():

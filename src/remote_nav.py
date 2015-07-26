@@ -313,7 +313,7 @@ while not rospy.is_shutdown():
 			if not recoveryrotate:
 				recoveryrotate = True
 				oculusprimesocket.sendString("messageclients recovery rotation")
-				oculusprimesocket.sendString("right 180")
+				oculusprimesocket.sendString("right 540") # was 180
 				oculusprimesocket.waitForReplySearch("<state> direction stop")
 				rospy.sleep(1)
 				move_base.send_goal(goal)
