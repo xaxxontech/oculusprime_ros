@@ -215,15 +215,11 @@ def sendScan():
 	oculusprimesocket.sendString(s)
 
 def cleanup():
-	# oculusprimesocket.sendString("state navigationenabled false")		
-	# oculusprimesocket.sendString("state delete navigationenabled")		
 	oculusprimesocket.sendString("state delete roscurrentgoal")
 	oculusprimesocket.sendString("state delete rosamcl")
 	oculusprimesocket.sendString("state delete rosglobalpath")
 	oculusprimesocket.sendString("state delete rosscan")
-	oculusprimesocket.sendString("log remote_nav.py disconnecting")  # goodbye world
-	# oculusprimesocket.sendString("state delete navigationroute")
-	# oculusprimesocket.sendString("messageclients navigation disabled")	
+	oculusprimesocket.sendString("log remote_nav.py disconnecting") 	
 
 
 # main
@@ -313,10 +309,17 @@ while not rospy.is_shutdown():
 			if not recoveryrotate:
 				recoveryrotate = True
 				oculusprimesocket.sendString("messageclients recovery rotation")
-				oculusprimesocket.sendString("right 540") # was 180
+				rospy.sleep(4) # allow cpu to settle
+				
+				oculusprimesocket.sendString("right 270")  
 				oculusprimesocket.waitForReplySearch("<state> direction stop")
-				rospy.sleep(1)
-				move_base.send_goal(goal)
+				rospy.sleep(2)
+
+				oculusprimesocket.sendString("right 270")  
+				oculusprimesocket.waitForReplySearch("<state> direction stop")
+				rospy.sleep(2)
+
+				move_base.send_goal(goal) # try once more
 			else:
 				oculusprimesocket.sendString("messageclients navigation goal ABORTED")
 				oculusprimesocket.sendString("state rosgoalstatus aborted")
@@ -324,5 +327,5 @@ while not rospy.is_shutdown():
 				goalseek = False
 		
 		
-	rospy.sleep(0.01) # this really helps with cpu load
+	rospy.sleep(0.01) # non busy wait
 		
