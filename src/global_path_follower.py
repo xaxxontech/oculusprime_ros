@@ -214,7 +214,8 @@ def cleanup():
 
 # MAIN
 
-rospy.init_node('dwa_base_controller', anonymous=False)
+# rospy.init_node('dwa_base_controller', anonymous=False)
+rospy.init_node('global_path_follower', anonymous=False)
 listener = tf.TransformListener()
 oculusprimesocket.connect()
 rospy.on_shutdown(cleanup)

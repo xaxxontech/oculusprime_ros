@@ -81,7 +81,10 @@ def replyBufferSearch(pattern):
 	return result  
 
 def connect():
-	"""Make socket connection to server, blocking"""
+	"""Make socket connection to server, blocking
+	
+	returns: True if success, False otherwise
+	"""
 	global sockfileIO, connected
 	try:
 		sock.connect((host, port))

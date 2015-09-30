@@ -23,7 +23,7 @@
   <!-- Run the depthimage_to_laserscan node -->
 
 	<arg name="scan_topic" default="scan"/>
-	<arg name = "fpscan_enable" default="false"/>
+	<arg name = "fpscan_enable" default="true"/>
     <node pkg="nodelet" type="nodelet" name="depthimage_to_laserscan" args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet $(arg camera)/$(arg camera)_nodelet_manager">
       <!-- Pixel rows to use to generate the laserscan. For each column, the scan will
            return the minimum value for those pixels centered vertically in the image. -->
