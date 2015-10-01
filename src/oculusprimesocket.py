@@ -4,13 +4,14 @@
 """make tcp socket connection with Oculus Prime Server Application
 provide functions for relay of commands and messages"""
 
-import socket, re
+import socket, re, time
 
 # NETWORK VARIABLE defaults - change to appropriate values
 host = "127.0.0.1"
 port = 4444
 
 connected = False
+reconnect = False
 
 sock = None
 sockfileIO = None
@@ -27,6 +28,8 @@ def sendString(s):
 		sock.sendall(s+"\r\n")
 	except socket.error: 
 		connected = False
+		if reconnect:
+			waitForConnect()
 
 
 def waitForReplySearch(pattern):
@@ -45,7 +48,10 @@ def waitForReplySearch(pattern):
 				break
 			if re.search("<telnet> shutdown", servermsg, re.IGNORECASE):
 				connected = False
-				return ""		
+				if reconnect:
+					waitForConnect()
+				else:
+					return ""		
 		except socket.error: 
 			connected = False
 			return ""
@@ -103,8 +109,18 @@ def connect():
 		sock.connect((host, port))
 	except socket.error:
 		connected = False
-		return False
+		if reconnect:
+			waitForConnect()
+			return True
+		else: 
+			return False
 	sockfileIO = sock.makefile()
 	waitForReplySearch("^<telnet> Welcome")
 	connected = True
 	return True
+	
+	
+def waitForConnect():
+	while not connected:
+		time.sleep(10)
+		connect()
