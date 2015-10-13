@@ -30,6 +30,7 @@ def sendString(s):
 		connected = False
 		if reconnect:
 			waitForConnect()
+			sendString(s)
 
 
 def waitForReplySearch(pattern):
