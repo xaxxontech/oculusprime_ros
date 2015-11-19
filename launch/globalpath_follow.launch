@@ -6,6 +6,8 @@
 	<node pkg="oculusprime" type="global_path_follower.py" name="global_path_follower" output="screen"
 		required="true" /> 
 -->
+	<node pkg="oculusprime" type="arcmove_globalpath_follower.py" name="arcmove_globalpath_follower" output="screen"
+		required="true" /> 
 
 	<node pkg="tf" type="static_transform_publisher" name="base_to_xtion_broadcaster" 
 		args="-0.054 0.048 0.29 0 0 0 /base_link /camera_depth_frame 100" />
