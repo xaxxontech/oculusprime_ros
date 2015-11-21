@@ -29,9 +29,12 @@ nextmove = 0
 odomx = 0
 odomy = 0
 odomth = 0
-targetx = 0	
-targety = 0
-targetth = 0
+gptargetx = 0	
+gptargety = 0
+gptargetth = 0
+lptargetx = 0	
+lptargety = 0
+lptargetth = 0
 followpath = False
 pathid = None
 goalth = 0 
@@ -53,43 +56,37 @@ listener = None
 
 def pathCallback(data): # local path
 	global goalpose, lastpath
-	global targetx, targety, targetth 
+	global lptargetx, lptargety,lptargetth 
 	
 	lastpath = rospy.get_time()
 	goalpose = False
 	
-	# if initialturn:
-		# return	
-		
-	# p = data.poses[len(data.poses)-1] # get latest pose
-	# targetx = p.pose.position.x
-	# targety = p.pose.position.y
+	p = data.poses[len(data.poses)-1] # get last pose in path
+	lptargetx = p.pose.position.x
+	lptargety = p.pose.position.y
 	# quaternion = ( p.pose.orientation.x, p.pose.orientation.y,
 	# p.pose.orientation.z, p.pose.orientation.w )
-	# targetth = tf.transformations.euler_from_quaternion(quaternion)[2]
+	# lptargetth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
 def globalPathCallback(data):
-	global targetx, targety, targetth , followpath, pathid
+	global gptargetx, gptargety, gptargetth, followpath, pathid
 	
 	n = len(data.poses)
 	if n < 5:
 		return
 
 	followpath = True
-
-	# if not initialturn:
-		# return
 		
 	if n-1 < globalpathposenum:
 		p = data.poses[n-1] 
 	else:
 		p = data.poses[globalpathposenum]
 	
-	targetx = p.pose.position.x
-	targety = p.pose.position.y
+	gptargetx = p.pose.position.x
+	gptargety = p.pose.position.y
 	quaternion = ( p.pose.orientation.x, p.pose.orientation.y,
 	p.pose.orientation.z, p.pose.orientation.w )
-	targetth = tf.transformations.euler_from_quaternion(quaternion)[2]
+	gptargetth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
 	pathid = data.header.seq
 
@@ -145,7 +142,7 @@ def goalStatusCallback(data):
 	if status.status == 1:
 		goalseek = True
 				
-def arcmove(ox, oy, oth, tx, ty, tth, gth):
+def arcmove(ox, oy, oth, gpx, gpy, goalth, lpx, lpy):
 	"""
 	scenarios:
 	-initial turn (usually going to want to rotate in place, then go) USE SAME
@@ -161,21 +158,41 @@ def arcmove(ox, oy, oth, tx, ty, tth, gth):
 	"""
 	
 	global initialturn, waitonaboutface, nextmove
-	# global followpath, goalpose, tfth, pathid
-	# global odomx, odomy, odomth
 	
+	gpdx = gpx - ox
+	gpdy = gpy - oy	
+	gpdistance = math.sqrt( pow(gpdx,2) + pow(gpdy,2) )
+	gpth = math.acos(gpdx/gpdistance)
+	if gpdy <0:
+		gpth = -gpth
+	
+	lpdx = lpx - ox
+	lpdy = lpy - oy	
+	lpdistance = math.sqrt( pow(lpdx,2) + pow(lpdy,2) )
+	lpth = math.acos(lpdx/lpdistance)
+	if lpdy <0:
+		lpth = -lpth
+			
 	# find arclength if any, and turn radians, depending on scenario
 	arclength = 0
 	goalrotate = False	
-	if followpath and not ox==tx and not oy==ty and not initialturn: # normal arc move
-		dx = tx - ox
-		dy = ty - oy	
-		distance = math.sqrt( pow(dx,2) + pow(dy,2) )
-		th = math.acos(dx/distance)
-		if dy <0:
-			th = -th
+	if followpath and not ox==gpx and not oy==gpy and not initialturn: # normal arc move
+		# dx = gpx - ox
+		# dy = gpy - oy	
+		# distance = math.sqrt( pow(dx,2) + pow(dy,2) )
+		# th = math.acos(dx/distance)
+		# if dy <0:
+			# th = -th
+			
+		if abs(lpth-gpth) > 1.5: # 0.436332: # 25 degrees local path disparity, use global instead
+			dth = gpth
+			distance = gpdistance
+			print("using global path")
+		else:
+			dth = lpth
+			distance = lpdistance
 
-		dth = th - oth
+		dth = dth - oth
 		if dth > math.pi:
 			dth = -math.pi*2 + dth
 		elif dth < -math.pi:
@@ -183,31 +200,31 @@ def arcmove(ox, oy, oth, tx, ty, tth, gth):
 
 		radius = (distance/2)/math.sin(dth/2)
 		arclength = radius * dth # *should* work out to always be > 0
-		if abs(dth/arclength) > 2.5: #  1.57:
+		if abs(dth/arclength) > 1.5: #  1.57:
 			arclength = 0
-			print ("dpm > 70")
-		else: 
-			print("arclength>0")
+			print ("high dpm")
+
 	elif goalpose:  # final goal rotate move
-		dth = (gth - tfth)-oth
+		dth = (goalth - tfth)-oth
 		goalrotate = True
 		print("goalrotate")
 	else: # initial turn move (always?)  
-		dx = tx - ox
-		dy = ty - oy	
-		distance = math.sqrt( pow(dx,2) + pow(dy,2) )
-		th = math.acos(dx/distance)
-		if dy <0:
-			th = -th
+		# dx = gpx - ox
+		# dy = gpy - oy	
+		# distance = math.sqrt( pow(dx,2) + pow(dy,2) )
+		# th = math.acos(dx/distance)
+		# if dy <0:
+			# th = -th
+			
+		dth = gpth - oth# point to global path
 
-		dth = th - oth
 		if initialturn:
 			initialturn = False
 			print("initialturn")
 		else:
 			print("not initialturn")
 
-	# determine angle delta for move
+	# determine angle delta for move TODO: cleanup
 	if dth > math.pi:
 		dth = -math.pi*2 + dth
 	elif dth < -math.pi:
@@ -258,8 +275,6 @@ def arcmove(ox, oy, oth, tx, ty, tth, gth):
 		
 	nextmove = rospy.get_time() + 0.4
 	
-	
-		
 
 def move(ox, oy, oth, tx, ty, tth, gth):
 	global followpath, goalpose, tfth, pathid, initialturn, waitonaboutface
@@ -282,7 +297,7 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 	elif goalpose:
 		th = gth - tfth
 		goalrotate = True
-	else:
+	else: # does this ever get called? just use th = math.acos(dx/distance), same?
 		th = tth
 	
 	# determine angle delta for move
@@ -334,13 +349,8 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 		rospy.sleep(distance/meterspersec)
 		initialturn = False
 
-	# if goalrotate:
-		# rospy.sleep(1) 
-		
 			
 def cleanup():
-	# oculusprimesocket.sendString("move stop")
-	# oculusprimesocket.sendString("state delete navigationenabled")
 	oculusprimesocket.sendString("log arcmove_globalpath_follower.py disconnecting")   
 
 
@@ -361,14 +371,12 @@ rospy.Subscriber("initialpose", PoseWithCovarianceStamped, intialPoseCallback)
 
 oculusprimesocket.sendString("log arcmove_globalpath_follower.py connected") 
 
-# oculusprimesocket.sendString("speed "+str(linearspeed) )
-
 while not rospy.is_shutdown():
 	t = rospy.get_time()
 	
 	if t >= nextmove:
 		if goalseek and (followpath or goalpose): 
-			arcmove(odomx, odomy, odomth, targetx, targety, targetth, goalth) # blocking
+			arcmove(odomx, odomy, odomth, gptargetx, gptargety, goalth, lptargetx, lptargety) # blocking
 			# nextmove = rospy.get_time() + listentime
 			followpath = False
 	
