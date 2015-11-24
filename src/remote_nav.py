@@ -221,7 +221,17 @@ def cleanup():
 	oculusprimesocket.sendString("state delete rosscan")
 	oculusprimesocket.sendString("log remote_nav.py disconnecting") 	
 
-
+def goalcancel():
+	global goalseek, recoveryrotate
+	
+	move_base.cancel_goal()
+	goalseek = False
+	oculusprimesocket.sendString("messageclients cancel navigation goal")
+	oculusprimesocket.sendString("state delete roscurrentgoal")
+	oculusprimesocket.sendString("state delete rosgoalcancel")
+	globalpath = []
+	recoveryrotate = False
+	
 # main
 
 oculusprimesocket.connect()	
@@ -273,13 +283,7 @@ while not rospy.is_shutdown():
 		recoveryrotate = False
 	
 	elif re.search("rosgoalcancel true", s):
-		move_base.cancel_goal()
-		goalseek = False
-		oculusprimesocket.sendString("messageclients cancel navigation goal")
-		oculusprimesocket.sendString("state delete roscurrentgoal")
-		oculusprimesocket.sendString("state delete rosgoalcancel")
-		globalpath = []
-		recoveryrotate = False
+		goalcancel()
 		
 	t = rospy.get_time()
 	if t - lastsendinfo > sendinfodelay:
@@ -311,13 +315,30 @@ while not rospy.is_shutdown():
 				oculusprimesocket.sendString("messageclients recovery rotation")
 				rospy.sleep(10) # allow cpu to settle
 				
+				oculusprimesocket.clearIncoming()
+				oculusprimesocket.sendString("state rosgoalcancel") 
+				s = oculusprimesocket.waitForReplySearch("<state> rosgoalcancel") 
+				if re.search("rosgoalcancel true", s):
+					goalcancel()
+					continue
+				
 				oculusprimesocket.sendString("right 270")  
 				oculusprimesocket.waitForReplySearch("<state> direction stop")
 				rospy.sleep(2)
+				
+				s = oculusprimesocket.waitForReplySearch("<state> rosgoalcancel") 
+				if re.search("rosgoalcancel true", s):
+					goalcancel()
+					continue
 
 				oculusprimesocket.sendString("right 270")  
 				oculusprimesocket.waitForReplySearch("<state> direction stop")
 				rospy.sleep(2)
+				
+				s = oculusprimesocket.waitForReplySearch("<state> rosgoalcancel") 
+				if re.search("rosgoalcancel true", s):
+					goalcancel()
+					continue
 
 				move_base.send_goal(goal) # try once more
 			else:

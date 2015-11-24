@@ -34,7 +34,6 @@ gptargety = 0
 gptargetth = 0
 lptargetx = 0	
 lptargety = 0
-lptargetth = 0
 followpath = False
 pathid = None
 goalth = 0 
@@ -55,11 +54,12 @@ listener = None
 
 
 def pathCallback(data): # local path
-	global goalpose, lastpath
-	global lptargetx, lptargety,lptargetth 
+	global goalpose, lastpath, followpath
+	global lptargetx, lptargety  
 	
 	lastpath = rospy.get_time()
 	goalpose = False
+	# followpath = True # if arcmove only!
 	
 	p = data.poses[len(data.poses)-1] # get last pose in path
 	lptargetx = p.pose.position.x
@@ -162,14 +162,20 @@ def arcmove(ox, oy, oth, gpx, gpy, goalth, lpx, lpy):
 	gpdx = gpx - ox
 	gpdy = gpy - oy	
 	gpdistance = math.sqrt( pow(gpdx,2) + pow(gpdy,2) )
-	gpth = math.acos(gpdx/gpdistance)
+	if not gpdistance == 0:
+		gpth = math.acos(gpdx/gpdistance)
+	else: 
+		gpth = 0
 	if gpdy <0:
 		gpth = -gpth
 	
 	lpdx = lpx - ox
 	lpdy = lpy - oy	
 	lpdistance = math.sqrt( pow(lpdx,2) + pow(lpdy,2) )
-	lpth = math.acos(lpdx/lpdistance)
+	if not lpdistance == 0:
+		lpth = math.acos(lpdx/lpdistance)
+	else:
+		lpth = 0
 	if lpdy <0:
 		lpth = -lpth
 			
@@ -177,16 +183,11 @@ def arcmove(ox, oy, oth, gpx, gpy, goalth, lpx, lpy):
 	arclength = 0
 	goalrotate = False	
 	if followpath and not ox==gpx and not oy==gpy and not initialturn: # normal arc move
-		# dx = gpx - ox
-		# dy = gpy - oy	
-		# distance = math.sqrt( pow(dx,2) + pow(dy,2) )
-		# th = math.acos(dx/distance)
-		# if dy <0:
-			# th = -th
 			
 		if abs(lpth-gpth) > 1.5: # 0.436332: # 25 degrees local path disparity, use global instead
 			dth = gpth
-			distance = gpdistance
+			# distance = gpdistance
+			distance = 0
 			print("using global path")
 		else:
 			dth = lpth
@@ -200,29 +201,23 @@ def arcmove(ox, oy, oth, gpx, gpy, goalth, lpx, lpy):
 
 		radius = (distance/2)/math.sin(dth/2)
 		arclength = radius * dth # *should* work out to always be > 0
-		if abs(dth/arclength) > 1.5: #  1.57:
-			arclength = 0
-			print ("high dpm")
+		if not arclength == 0:
+			if abs(dth/arclength) > 1.5: #  1.57:
+				arclength = 0
+				print ("high dpm")
 
 	elif goalpose:  # final goal rotate move
 		dth = (goalth - tfth)-oth
 		goalrotate = True
 		print("goalrotate")
 	else: # initial turn move (always?)  
-		# dx = gpx - ox
-		# dy = gpy - oy	
-		# distance = math.sqrt( pow(dx,2) + pow(dy,2) )
-		# th = math.acos(dx/distance)
-		# if dy <0:
-			# th = -th
-			
-		dth = gpth - oth# point to global path
-
+		dth = gpth - oth # point to global path
 		if initialturn:
-			initialturn = False
 			print("initialturn")
 		else:
 			print("not initialturn")
+
+	initialturn = False
 
 	# determine angle delta for move TODO: cleanup
 	if dth > math.pi:
@@ -233,6 +228,7 @@ def arcmove(ox, oy, oth, gpx, gpy, goalth, lpx, lpy):
 	# if turning more than 120 deg, inch forward, make sure not transient obstacle (like door transfer)
 	# TODO: skip if within 3 feet of goal?!
 	# if abs(dth) > 2.0944 and not goalrotate and not initialturn and waitonaboutface < 1: 
+		# oculusprimesocket.clearIncoming()
 		# oculusprimesocket.sendString("forward 0.25")
 		# oculusprimesocket.waitForReplySearch("<state> direction stop")
 		# waitonaboutface += 1 # only do this once
@@ -241,15 +237,15 @@ def arcmove(ox, oy, oth, gpx, gpy, goalth, lpx, lpy):
 	# waitonaboutface = 0
 
 	if arclength > 0: # arcmove
-		# force arclength limits	
 		if arclength < minlinear:
 			arclength = minlinear
-		if arclength > maxarclinear:
-			arclength = maxarclinear
+		# if arclength > maxarclinear:
+			# arclength = maxarclinear
 
-		oculusprimesocket.sendString("arcmove " + str(distance) + " " + str(int(math.degrees(dth))) ) 
-		rospy.sleep(distance/meterspersec)
-		print("arcmove " + str(distance) + " " + str(int(math.degrees(dth))) ) 
+		oculusprimesocket.sendString("arcmove " + str(arclength) + " " + str(int(math.degrees(dth))) ) 
+		rospy.sleep(arclength/0.35)
+		# rospy.sleep(distance/meterspersec)
+		print("arcmove " + str(arclength) + " " + str(int(math.degrees(dth))) ) 
 		nextmove = rospy.get_time()
 		return
 	
@@ -261,19 +257,25 @@ def arcmove(ox, oy, oth, gpx, gpy, goalth, lpx, lpy):
 		dth = -minturn
 	
 	oculusprimesocket.clearIncoming()
+	# oculusprimesocket.sendString("state direction")
+	# s = oculusprimesocket.waitForReplySearch("<state> direction")
+	# if "stop" not in s:
+
+	oculusprimesocket.sendString("move stop")
+	oculusprimesocket.waitForReplySearch("<state> direction stop")
 
 	if dth > 0:
 		oculusprimesocket.sendString("left " + str(int(math.degrees(dth))) ) 
 		oculusprimesocket.waitForReplySearch("<state> direction stop")
-		rospy.sleep(dth/radianspersec)
+		# rospy.sleep(dth/radianspersec+0.5)
 		print ("left " + str(int(math.degrees(dth))) )
 	elif dth < 0:
 		oculusprimesocket.sendString("right " +str(int(math.degrees(-dth))) )
 		oculusprimesocket.waitForReplySearch("<state> direction stop")
-		rospy.sleep(dth/radianspersec)
+		# rospy.sleep(dth/radianspersec+0.5)
 		print ("right " +str(int(math.degrees(-dth))) )
 		
-	nextmove = rospy.get_time() + 0.4
+	nextmove = rospy.get_time() + 0.6
 	
 
 def move(ox, oy, oth, tx, ty, tth, gth):
