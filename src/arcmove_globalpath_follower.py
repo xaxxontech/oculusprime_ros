@@ -18,13 +18,13 @@ requires dwa_base_controller, global path updated continuously as bot moves
 import rospy, tf
 import oculusprimesocket
 from nav_msgs.msg import Odometry
-import math
+import math, re
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from actionlib_msgs.msg import GoalStatusArray
 from move_base_msgs.msg import MoveBaseActionGoal
 
-listentime = 0.1 # 0.6 # allows odom + amcl to catch up
+listentime = 0.6 # allows odom + amcl to catch up
 nextmove = 0
 odomx = 0
 odomy = 0
@@ -36,13 +36,15 @@ lptargetx = 0
 lptargety = 0
 followpath = False
 pathid = None
+goalx = 0
+goaly = 0
 goalth = 0 
 initialturn = False
 waitonaboutface = 0
 minturn = math.radians(8) # (was 6) -- 0.21 minimum for pwm 255
 minlinear = 0.08 # was 0.05
 maxlinear = 0.5
-maxarclinear = 0.75
+# maxarclinear = 0.75
 lastpath = 0  # refers to localpath
 goalpose = False
 goalseek = False
@@ -74,8 +76,6 @@ def globalPathCallback(data):
 	n = len(data.poses)
 	if n < 5:
 		return
-
-	followpath = True
 		
 	if n-1 < globalpathposenum:
 		p = data.poses[n-1] 
@@ -89,6 +89,8 @@ def globalPathCallback(data):
 	gptargetth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
 	pathid = data.header.seq
+	followpath = True
+
 
 def odomCallback(data):
 	global odomx, odomy, odomth
@@ -118,7 +120,7 @@ def intialPoseCallback(data):
 
 	
 def goalCallback(d):
-	global goalth, goalpose, lastpath, initialturn, followpath, nextmove
+	global goalx, goaly, goalth, goalpose, lastpath, initialturn, followpath, nextmove
 
 	# to prevent immediately rotating wrongly towards new goal direction 
 	lastpath = rospy.get_time()
@@ -126,6 +128,8 @@ def goalCallback(d):
 
 	# set goal angle
 	data = d.goal.target_pose
+	goalx = data.pose.position.x
+	goaly = data.pose.position.y
 	quaternion = ( data.pose.orientation.x, data.pose.orientation.y,
 	data.pose.orientation.z, data.pose.orientation.w )
 	goalth = tf.transformations.euler_from_quaternion(quaternion)[2]
@@ -142,7 +146,7 @@ def goalStatusCallback(data):
 	if status.status == 1:
 		goalseek = True
 				
-def arcmove(ox, oy, oth, gpx, gpy, goalth, lpx, lpy):
+def arcmove(ox, oy, oth, gpx, gpy, gpth, goalth, lpx, lpy):
 	"""
 	scenarios:
 	-initial turn (usually going to want to rotate in place, then go) USE SAME
@@ -164,8 +168,8 @@ def arcmove(ox, oy, oth, gpx, gpy, goalth, lpx, lpy):
 	gpdistance = math.sqrt( pow(gpdx,2) + pow(gpdy,2) )
 	if not gpdistance == 0:
 		gpth = math.acos(gpdx/gpdistance)
-	else: 
-		gpth = 0
+	# else gpth= gpth
+	
 	if gpdy <0:
 		gpth = -gpth
 	
@@ -248,8 +252,10 @@ def arcmove(ox, oy, oth, gpx, gpy, goalth, lpx, lpy):
 		print("arcmove " + str(arclength) + " " + str(int(math.degrees(dth))) ) 
 		nextmove = rospy.get_time()
 		return
+
 	
 	# rotate only
+
 	# force minimum
 	if dth > 0 and dth < minturn:
 		dth = minturn
@@ -275,12 +281,11 @@ def arcmove(ox, oy, oth, gpx, gpy, goalth, lpx, lpy):
 		# rospy.sleep(dth/radianspersec+0.5)
 		print ("right " +str(int(math.degrees(-dth))) )
 		
-	nextmove = rospy.get_time() + 0.6
+	nextmove = rospy.get_time() + listentime
 	
 
 def move(ox, oy, oth, tx, ty, tth, gth):
-	global followpath, goalpose, tfth, pathid, initialturn, waitonaboutface
-	global odomx, odomy, odomth
+	global followpath, initialturn, waitonaboutface, nextmove
 
 	currentpathid = pathid
 
@@ -327,16 +332,18 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 	oculusprimesocket.clearIncoming()
 
 	# if turning more than 120 deg, inch forward, make sure not transient obstacle (like door transfer)
-	if abs(dth) > 2.0944 and not goalrotate and not initialturn and waitonaboutface < 1: 
-		oculusprimesocket.sendString("forward 0.25")
-		oculusprimesocket.waitForReplySearch("<state> direction stop")
-		waitonaboutface += 1 # only do this once
-		rospy.sleep(1)
-		return
+	# if abs(dth) > 2.0944 and not goalrotate and not initialturn and waitonaboutface < 1: 
+		# oculusprimesocket.sendString("forward 0.25")
+		# oculusprimesocket.waitForReplySearch("<state> direction stop")
+		# waitonaboutface += 1 # only do this once
+		# rospy.sleep(1)
+		# nextmove = rospy.get_time() + listentime
+		# return
 		
 	waitonaboutface = 0
 
-	if not pathid == currentpathid:
+	if not pathid == currentpathid:			
+		nextmove = rospy.get_time() + listentime
 		return
 
 	if dth > 0:
@@ -350,6 +357,8 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 		oculusprimesocket.sendString("forward "+str(distance))
 		rospy.sleep(distance/meterspersec)
 		initialturn = False
+	
+	nextmove = rospy.get_time() + listentime
 
 			
 def cleanup():
@@ -359,7 +368,7 @@ def cleanup():
 # MAIN
 
 # rospy.init_node('dwa_base_controller', anonymous=False)
-rospy.init_node('global_path_follower', anonymous=False)
+rospy.init_node('arcmove_globalpath_follower', anonymous=False)
 listener = tf.TransformListener()
 oculusprimesocket.connect()
 rospy.on_shutdown(cleanup)
@@ -372,14 +381,26 @@ rospy.Subscriber("move_base/DWAPlannerROS/global_plan", Path, globalPathCallback
 rospy.Subscriber("initialpose", PoseWithCovarianceStamped, intialPoseCallback)
 
 oculusprimesocket.sendString("log arcmove_globalpath_follower.py connected") 
+oculusprimesocket.clearIncoming()
+oculusprimesocket.sendString("state rosarcmove")  # get initial mode status, must be explicitly set true|false
+rosarcmove = True # default
 
 while not rospy.is_shutdown():
 	t = rospy.get_time()
 	
+	s = oculusprimesocket.replyBufferSearch("<state> rosarcmove")
+	if re.search("true", s):
+		rosarcmove = True
+	if re.search("false", s):
+		rosarcmove = False
+	
 	if t >= nextmove:
 		if goalseek and (followpath or goalpose): 
-			arcmove(odomx, odomy, odomth, gptargetx, gptargety, goalth, lptargetx, lptargety) # blocking
-			# nextmove = rospy.get_time() + listentime
+			if rosarcmove:
+				arcmove(odomx, odomy, odomth, gptargetx, gptargety, gptargetth, goalth, lptargetx, lptargety) # blocking
+			else:
+				move(odomx, odomy, odomth, gptargetx, gptargety, gptargetth, goalth) # blocking
+				
 			followpath = False
 	
 	if t - lastpath > 3:
