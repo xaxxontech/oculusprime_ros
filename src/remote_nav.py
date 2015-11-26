@@ -326,6 +326,7 @@ while not rospy.is_shutdown():
 				oculusprimesocket.waitForReplySearch("<state> direction stop")
 				rospy.sleep(2)
 				
+				oculusprimesocket.sendString("state rosgoalcancel") 
 				s = oculusprimesocket.waitForReplySearch("<state> rosgoalcancel") 
 				if re.search("rosgoalcancel true", s):
 					goalcancel()
@@ -335,6 +336,7 @@ while not rospy.is_shutdown():
 				oculusprimesocket.waitForReplySearch("<state> direction stop")
 				rospy.sleep(2)
 				
+				oculusprimesocket.sendString("state rosgoalcancel") 
 				s = oculusprimesocket.waitForReplySearch("<state> rosgoalcancel") 
 				if re.search("rosgoalcancel true", s):
 					goalcancel()

@@ -34,6 +34,7 @@ gptargety = 0
 gptargetth = 0
 lptargetx = 0	
 lptargety = 0
+lptargetth = 0
 followpath = False
 pathid = None
 goalx = 0
@@ -50,6 +51,8 @@ goalpose = False
 goalseek = False
 meterspersec = 0.33 # linear speed  TODO: get from java
 radianspersec = 1.496
+tfx = 0
+tfy = 0
 tfth = 0
 globalpathposenum = 20  
 listener = None
@@ -66,9 +69,9 @@ def pathCallback(data): # local path
 	p = data.poses[len(data.poses)-1] # get last pose in path
 	lptargetx = p.pose.position.x
 	lptargety = p.pose.position.y
-	# quaternion = ( p.pose.orientation.x, p.pose.orientation.y,
-	# p.pose.orientation.z, p.pose.orientation.w )
-	# lptargetth = tf.transformations.euler_from_quaternion(quaternion)[2]
+	quaternion = ( p.pose.orientation.x, p.pose.orientation.y,
+	p.pose.orientation.z, p.pose.orientation.w )
+	lptargetth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
 def globalPathCallback(data):
 	global gptargetx, gptargety, gptargetth, followpath, pathid
@@ -101,13 +104,16 @@ def odomCallback(data):
 	odomth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
 	# determine direction (angle) on map
-	global tfth, listener	 
-	try:
-		(trans,rot) = listener.lookupTransform('/map', '/odom', rospy.Time(0))
-		quaternion = (rot[0], rot[1], rot[2], rot[3])
-		tfth = tf.transformations.euler_from_quaternion(quaternion)[2]
-	except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-		pass	
+	# global tfth, tfx, tfy, listener	 
+	# try:
+		# (trans,rot) = listener.lookupTransform('/map', '/odom', rospy.Time(0))
+		
+		# quaternion = (rot[0], rot[1], rot[2], rot[3])
+		# tfx = trans[0]
+		# tfy = trans[1]
+		# tfth = tf.transformations.euler_from_quaternion(quaternion)[2]
+	# except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+		# pass	
 
 def intialPoseCallback(data):
 	if data.pose.pose.position.x == 0 and data.pose.pose.position.y == 0:
@@ -146,7 +152,7 @@ def goalStatusCallback(data):
 	if status.status == 1:
 		goalseek = True
 				
-def arcmove(ox, oy, oth, gpx, gpy, gpth, goalth, lpx, lpy):
+def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 	"""
 	scenarios:
 	-initial turn (usually going to want to rotate in place, then go) USE SAME
@@ -163,25 +169,23 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, goalth, lpx, lpy):
 	
 	global initialturn, waitonaboutface, nextmove
 	
+	# global path targets
 	gpdx = gpx - ox
 	gpdy = gpy - oy	
 	gpdistance = math.sqrt( pow(gpdx,2) + pow(gpdy,2) )
 	if not gpdistance == 0:
 		gpth = math.acos(gpdx/gpdistance)
-	# else gpth= gpth
-	
-	if gpdy <0:
-		gpth = -gpth
-	
+		if gpdy <0:
+			gpth = -gpth
+		
+	# local path targets	
 	lpdx = lpx - ox
 	lpdy = lpy - oy	
 	lpdistance = math.sqrt( pow(lpdx,2) + pow(lpdy,2) )
 	if not lpdistance == 0:
 		lpth = math.acos(lpdx/lpdistance)
-	else:
-		lpth = 0
-	if lpdy <0:
-		lpth = -lpth
+		if lpdy <0:
+			lpth = -lpth
 			
 	# find arclength if any, and turn radians, depending on scenario
 	arclength = 0
@@ -190,8 +194,8 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, goalth, lpx, lpy):
 			
 		if abs(lpth-gpth) > 1.5: # 0.436332: # 25 degrees local path disparity, use global instead
 			dth = gpth
-			# distance = gpdistance
-			distance = 0
+			distance = gpdistance/2 # prevent oscillation, better than distance = 0
+			# distance = 0
 			print("using global path")
 		else:
 			dth = lpth
@@ -211,9 +215,17 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, goalth, lpx, lpy):
 				print ("high dpm")
 
 	elif goalpose:  # final goal rotate move
-		dth = (goalth - tfth)-oth
-		goalrotate = True
-		print("goalrotate")
+		try:
+			(trans,rot) = listener.lookupTransform('/map', '/odom', rospy.Time(0))
+			quaternion = (rot[0], rot[1], rot[2], rot[3])
+			dth = (gth - tf.transformations.euler_from_quaternion(quaternion)[2]) - oth
+			# dth = (gth - tfth)-oth
+			goalrotate = True
+			print("goalrotate")
+		except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+			print ("lookupTransform exception")
+			dth = lpth
+
 	else: # initial turn move (always?)  
 		dth = gpth - oth # point to global path
 		if initialturn:
@@ -221,7 +233,6 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, goalth, lpx, lpy):
 		else:
 			print("not initialturn")
 
-	initialturn = False
 
 	# determine angle delta for move TODO: cleanup
 	if dth > math.pi:
@@ -231,14 +242,19 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, goalth, lpx, lpy):
 		
 	# if turning more than 120 deg, inch forward, make sure not transient obstacle (like door transfer)
 	# TODO: skip if within 3 feet of goal?!
-	# if abs(dth) > 2.0944 and not goalrotate and not initialturn and waitonaboutface < 1: 
-		# oculusprimesocket.clearIncoming()
-		# oculusprimesocket.sendString("forward 0.25")
-		# oculusprimesocket.waitForReplySearch("<state> direction stop")
-		# waitonaboutface += 1 # only do this once
-		# rospy.sleep(1)
-		# return
-	# waitonaboutface = 0
+	if abs(dth) > 2.0944 and not goalrotate and not initialturn and waitonaboutface < 1: 
+		if goalDistance() > 0.9:
+			oculusprimesocket.clearIncoming()
+			oculusprimesocket.sendString("forward 0.25")
+			oculusprimesocket.waitForReplySearch("<state> direction stop")
+			waitonaboutface += 1 # only do this once
+			rospy.sleep(1)
+			nextmove = rospy.get_time() + listentime
+			print("pausing...")
+			return
+	waitonaboutface = 0
+
+	initialturn = False
 
 	if arclength > 0: # arcmove
 		if arclength < minlinear:
@@ -301,9 +317,20 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 		th = math.acos(dx/distance)
 		if dy <0:
 			th = -th
+			
 	elif goalpose:
-		th = gth - tfth
-		goalrotate = True
+		try:
+			(trans,rot) = listener.lookupTransform('/map', '/odom', rospy.Time(0))
+			quaternion = (rot[0], rot[1], rot[2], rot[3])
+			th = gth - tf.transformations.euler_from_quaternion(quaternion)[2]
+			goalrotate = True
+			print("goalrotate")
+		except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+			print ("lookupTransform exception")
+			th = tth		
+			
+		# th = gth - tfth
+
 	else: # does this ever get called? just use th = math.acos(dx/distance), same?
 		th = tth
 	
@@ -332,13 +359,14 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 	oculusprimesocket.clearIncoming()
 
 	# if turning more than 120 deg, inch forward, make sure not transient obstacle (like door transfer)
-	# if abs(dth) > 2.0944 and not goalrotate and not initialturn and waitonaboutface < 1: 
-		# oculusprimesocket.sendString("forward 0.25")
-		# oculusprimesocket.waitForReplySearch("<state> direction stop")
-		# waitonaboutface += 1 # only do this once
-		# rospy.sleep(1)
-		# nextmove = rospy.get_time() + listentime
-		# return
+	if abs(dth) > 2.0944 and not goalrotate and not initialturn and waitonaboutface < 1: 
+		if goalDistance() > 0.9:
+			oculusprimesocket.sendString("forward 0.25")
+			oculusprimesocket.waitForReplySearch("<state> direction stop")
+			waitonaboutface += 1 # only do this once
+			rospy.sleep(1)
+			nextmove = rospy.get_time() + listentime
+			return
 		
 	waitonaboutface = 0
 
@@ -360,6 +388,20 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 	
 	nextmove = rospy.get_time() + listentime
 
+
+def goalDistance(): 
+	
+	try:
+		(trans,rot) = listener.lookupTransform('/map', '/base_link', rospy.Time(0))
+	except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+		return 99
+
+	gdx = goalx - trans[0]
+	gdy = goaly - trans[1]
+	distance  = math.sqrt( pow(gdx,2) + pow(gdy,2) )
+	# print ("goaldistance: "+str(distance)+", tfx: "+str(tfx)+", tfy: "+str(tfy))
+	return distance
+	
 			
 def cleanup():
 	oculusprimesocket.sendString("log arcmove_globalpath_follower.py disconnecting")   
@@ -383,28 +425,33 @@ rospy.Subscriber("initialpose", PoseWithCovarianceStamped, intialPoseCallback)
 oculusprimesocket.sendString("log arcmove_globalpath_follower.py connected") 
 oculusprimesocket.clearIncoming()
 oculusprimesocket.sendString("state rosarcmove")  # get initial mode status, must be explicitly set true|false
-rosarcmove = True # default
 
 while not rospy.is_shutdown():
 	t = rospy.get_time()
 	
 	s = oculusprimesocket.replyBufferSearch("<state> rosarcmove")
-	if re.search("true", s):
-		rosarcmove = True
 	if re.search("false", s):
 		rosarcmove = False
+	else: 
+		rosarcmove = True
 	
 	if t >= nextmove:
-		if goalseek and (followpath or goalpose): 
-			if rosarcmove:
-				arcmove(odomx, odomy, odomth, gptargetx, gptargety, gptargetth, goalth, lptargetx, lptargety) # blocking
+		if goalseek and (followpath or goalpose):
+	
+			if rosarcmove and goalDistance() > 0.9:
+				arcmove(odomx, odomy, odomth, gptargetx, gptargety, gptargetth, goalth, lptargetx, lptargety, lptargetth) # blocking
 			else:
+				print ("using move() global path")
 				move(odomx, odomy, odomth, gptargetx, gptargety, gptargetth, goalth) # blocking
 				
 			followpath = False
 	
-	if t - lastpath > 3:
-		goalpose = True
+	if t - lastpath > 3 and goalseek:
+		if goalDistance() <= 0.9:
+			goalpose = True
+		else:
+			rospy.sleep(0.5)
+		# goalpose = True
 	
 	rospy.sleep(0.01)
 	
