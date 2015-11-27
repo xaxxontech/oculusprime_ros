@@ -242,13 +242,13 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 		
 	# if turning more than 120 deg, inch forward, make sure not transient obstacle (like door transfer)
 	# TODO: skip if within 3 feet of goal?!
-	if abs(dth) > 2.0944 and not goalrotate and not initialturn and waitonaboutface < 1: 
+	if abs(dth) > 1.57 and not goalrotate and not initialturn and waitonaboutface < 1: # was 2.094 120 deg
 		if goalDistance() > 0.9:
 			oculusprimesocket.clearIncoming()
 			oculusprimesocket.sendString("forward 0.25")
 			oculusprimesocket.waitForReplySearch("<state> direction stop")
 			waitonaboutface += 1 # only do this once
-			rospy.sleep(1)
+			rospy.sleep(1.5)
 			nextmove = rospy.get_time() + listentime
 			print("pausing...")
 			return
@@ -359,12 +359,12 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 	oculusprimesocket.clearIncoming()
 
 	# if turning more than 120 deg, inch forward, make sure not transient obstacle (like door transfer)
-	if abs(dth) > 2.0944 and not goalrotate and not initialturn and waitonaboutface < 1: 
+	if abs(dth) > 1.57 and not goalrotate and not initialturn and waitonaboutface < 1: 
 		if goalDistance() > 0.9:
 			oculusprimesocket.sendString("forward 0.25")
 			oculusprimesocket.waitForReplySearch("<state> direction stop")
 			waitonaboutface += 1 # only do this once
-			rospy.sleep(1)
+			rospy.sleep(1.5)
 			nextmove = rospy.get_time() + listentime
 			return
 		
@@ -425,6 +425,7 @@ rospy.Subscriber("initialpose", PoseWithCovarianceStamped, intialPoseCallback)
 oculusprimesocket.sendString("log arcmove_globalpath_follower.py connected") 
 oculusprimesocket.clearIncoming()
 oculusprimesocket.sendString("state rosarcmove")  # get initial mode status, must be explicitly set true|false
+rosarcmove = True
 
 while not rospy.is_shutdown():
 	t = rospy.get_time()
@@ -432,7 +433,7 @@ while not rospy.is_shutdown():
 	s = oculusprimesocket.replyBufferSearch("<state> rosarcmove")
 	if re.search("false", s):
 		rosarcmove = False
-	else: 
+	if re.search("true", s):
 		rosarcmove = True
 	
 	if t >= nextmove:
