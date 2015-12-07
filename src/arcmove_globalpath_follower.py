@@ -50,7 +50,7 @@ lastpath = 0  # refers to localpath
 goalpose = False
 goalseek = False
 meterspersec = 0.33 # linear speed  TODO: get from java
-radianspersec = 1.496
+radianspersec = 1.496 # 1.496 = 0.0857degrees per ms
 tfx = 0
 tfy = 0
 tfth = 0
@@ -423,22 +423,24 @@ rospy.Subscriber("move_base/DWAPlannerROS/global_plan", Path, globalPathCallback
 rospy.Subscriber("initialpose", PoseWithCovarianceStamped, intialPoseCallback)
 
 oculusprimesocket.sendString("log arcmove_globalpath_follower.py connected") 
-oculusprimesocket.clearIncoming()
-oculusprimesocket.sendString("state rosarcmove")  # get initial mode status, must be explicitly set true|false
-rosarcmove = True
+# oculusprimesocket.clearIncoming()
+# oculusprimesocket.sendString("state rosarcmove")  # get initial mode status, must be explicitly set true|false
+oculusprimesocket.sendString("state rosarcmove true") 
+
 
 while not rospy.is_shutdown():
 	t = rospy.get_time()
 	
-	s = oculusprimesocket.replyBufferSearch("<state> rosarcmove")
-	if re.search("false", s):
-		rosarcmove = False
-	if re.search("true", s):
-		rosarcmove = True
-	
 	if t >= nextmove:
 		if goalseek and (followpath or goalpose):
-	
+			
+			oculusprimesocket.sendString("state rosarcmove")  
+			s = oculusprimesocket.waitForReplySearch("<state> rosarcmove")
+			if re.search("true", s):
+				rosarcmove = True
+			else:
+				rosarcmove = False
+				
 			if rosarcmove and goalDistance() > 0.9:
 				arcmove(odomx, odomy, odomth, gptargetx, gptargety, gptargetth, goalth, lptargetx, lptargety, lptargetth) # blocking
 			else:
