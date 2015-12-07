@@ -3,13 +3,6 @@
 """
 on any new /initialpose, do full rotation, then delay (to hone in amcl)
 
-follow something ~15th pose in global path for all moves (about 0.3m away?)
-    -maximum path length seems to be about 35*5 (45*5 max) for 2-3 meter path
-    -(longer if more turns -- go for 15th or 20th pose, or max if less, should be OK)
-
-ignore local path, except for determining if at goal or not
-	if no recent local path, must be at goal: followpath = False, goalpose = true
-
 requires dwa_base_controller, global path updated continuously as bot moves
 
 """
@@ -64,7 +57,6 @@ def pathCallback(data): # local path
 	
 	lastpath = rospy.get_time()
 	goalpose = False
-	# followpath = True # if arcmove only!
 	
 	p = data.poses[len(data.poses)-1] # get last pose in path
 	lptargetx = p.pose.position.x
@@ -103,17 +95,6 @@ def odomCallback(data):
 	data.pose.pose.orientation.z, data.pose.pose.orientation.w )
 	odomth = tf.transformations.euler_from_quaternion(quaternion)[2]
 	
-	# determine direction (angle) on map
-	# global tfth, tfx, tfy, listener	 
-	# try:
-		# (trans,rot) = listener.lookupTransform('/map', '/odom', rospy.Time(0))
-		
-		# quaternion = (rot[0], rot[1], rot[2], rot[3])
-		# tfx = trans[0]
-		# tfy = trans[1]
-		# tfth = tf.transformations.euler_from_quaternion(quaternion)[2]
-	# except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-		# pass	
 
 def intialPoseCallback(data):
 	if data.pose.pose.position.x == 0 and data.pose.pose.position.y == 0:
@@ -153,19 +134,6 @@ def goalStatusCallback(data):
 		goalseek = True
 				
 def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
-	"""
-	scenarios:
-	-initial turn (usually going to want to rotate in place, then go) USE SAME
-	   -stopbetweenmoves true, turn to point to target, stopbetweenmoves false, linear move
-	-normal global path following (arc move)  NEW
-	   -stopbetweenmoves false, arcmove dist angle
-	   - TODO: should rotate in place beyond maximum angle???
-	-goal pose final turn (rotate in place)-- was determined by reaching location and 
-	    no more local paths published for 3 seconds... global path shouldn't include goal pose?  USE SAME
-	    -stopbetweenmoves true, turn to pose
-	-obstacle (potentially a sudden large angle! was using 120 deg from current pose)
-		-if angle > 90? do linear move instead then wait (stopbetweenmoves true first?)
-	"""
 	
 	global initialturn, waitonaboutface, nextmove
 	
@@ -192,7 +160,7 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 	goalrotate = False	
 	if followpath and not ox==gpx and not oy==gpy and not initialturn: # normal arc move
 			
-		if abs(lpth-gpth) > 1.5: # 0.436332: # 25 degrees local path disparity, use global instead
+		if abs(lpth-gpth) > 1.5: # 90 degrees local path disparity, use global instead
 			dth = gpth
 			distance = gpdistance/2 # prevent oscillation, better than distance = 0
 			# distance = 0
@@ -279,9 +247,6 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 		dth = -minturn
 	
 	oculusprimesocket.clearIncoming()
-	# oculusprimesocket.sendString("state direction")
-	# s = oculusprimesocket.waitForReplySearch("<state> direction")
-	# if "stop" not in s:
 
 	oculusprimesocket.sendString("move stop")
 	oculusprimesocket.waitForReplySearch("<state> direction stop")
@@ -423,8 +388,6 @@ rospy.Subscriber("move_base/DWAPlannerROS/global_plan", Path, globalPathCallback
 rospy.Subscriber("initialpose", PoseWithCovarianceStamped, intialPoseCallback)
 
 oculusprimesocket.sendString("log arcmove_globalpath_follower.py connected") 
-# oculusprimesocket.clearIncoming()
-# oculusprimesocket.sendString("state rosarcmove")  # get initial mode status, must be explicitly set true|false
 oculusprimesocket.sendString("state rosarcmove true") 
 
 
