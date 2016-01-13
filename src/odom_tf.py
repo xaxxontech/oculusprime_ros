@@ -17,11 +17,12 @@ import oculusprimesocket
 pos = [0.0, 0.0, 0.0]
 before = 0
 now = 0
+lag = 0.035 # 0.075 = xtion   0.035 = astra
 		
 
 def broadcast(s):
 	global before, pos, now
-	now = rospy.Time.now() - rospy.Duration(0.075) # 0.05 subtract socket + serial + fifo read lag 0.075 = tested with rviz odom only 
+	now = rospy.Time.now() - rospy.Duration(lag) # 0.05 subtract socket + serial + fifo read lag 0.075 = tested with rviz odom only 
 	dt = (now-before).to_sec()
 	before = now
 
