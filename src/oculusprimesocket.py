@@ -45,14 +45,18 @@ def waitForReplySearch(pattern):
 	while True:
 		try:
 			servermsg = (sockfileIO.readline()).strip()
-			if re.search(pattern, servermsg, re.IGNORECASE): 
-				break
+
 			if re.search("<telnet> shutdown", servermsg, re.IGNORECASE):
 				connected = False
 				if reconnect:
 					waitForConnect()
+					waitForReplySearch(pattern)
+					return
 				else:
 					return ""		
+					
+			if re.search(pattern, servermsg, re.IGNORECASE): 
+				break
 		except socket.error: 
 			connected = False
 			return ""
