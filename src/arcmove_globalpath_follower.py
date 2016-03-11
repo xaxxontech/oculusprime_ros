@@ -42,8 +42,11 @@ maxlinear = 0.5
 lastpath = 0  # refers to localpath
 goalpose = False
 goalseek = False
-meterspersec = 0.33 # linear speed  TODO: get from java
+
+# TODO: get these two values from java
+meterspersec = 0.33 # linear speed  
 radianspersec = 1.496 # 1.496 = 0.0857degrees per ms
+
 dpmthreshold = 1.2 # maximum to allow arcturn, radians per meter
 tfx = 0
 tfy = 0

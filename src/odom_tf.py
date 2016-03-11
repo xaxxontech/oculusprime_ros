@@ -85,7 +85,7 @@ odom_pub = rospy.Publisher('odom', Odometry, queue_size=10)
 rospy.on_shutdown(cleanup)
 oculusprimesocket.connect()
 oculusprimesocket.sendString("log odom_tf.py connected")  
-oculusprimesocket.sendString("state odometrybroadcast 250")  # ms
+oculusprimesocket.sendString("state odometrybroadcast 250")  # ms, needs to be set prior to odometrystart
 oculusprimesocket.sendString("odometrystart")
 broadcast("* * 0 0".split()) # broadcast zero odometry baseline
 

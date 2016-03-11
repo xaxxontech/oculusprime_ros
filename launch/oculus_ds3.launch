@@ -1,9 +1,0 @@
-<launch>
-  <node pkg="joy" type="joy_node" name="ps3_joy" output="screen" >
-    <param name="dev" type="string" value="/dev/input/js0" />
-    <param name="deadzone" value="0.12" />
-  </node>
-
-  <node pkg="oculusprime" type="ds3joy_relay.py" name="ds3joy_relay" />
-
-</launch>
