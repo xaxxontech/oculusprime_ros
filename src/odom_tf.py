@@ -17,7 +17,7 @@ import oculusprimesocket
 pos = [0.0, 0.0, 0.0]
 before = 0
 now = 0
-lag = 0.035 # 0.075 = xtion   0.035 = astra
+lag = 0.075 # 0.075 = xtion   0.035 = astra
 		
 
 def broadcast(s):
