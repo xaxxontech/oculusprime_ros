@@ -5,7 +5,6 @@ from geometry_msgs.msg import Twist
 
 lastlinear = 0
 lastangular = 0
-last
 
 def twistCallback(data):
 	global lastlinear, lastangular
@@ -46,18 +45,19 @@ def twistCallback(data):
 	elif linear == 0 and angular < 0:
 		cmd = "right 40"
 		
-	elif linear > 0 and not angular == 0: 
+	elif linear > 0 and not angular == 0:  # forward arc
 		distance = "0.33" 
 		angle = str(int(math.degrees(angular))/3)
 		cmd = "arcmove "+distance+" "+angle
 	
-	elif linear < 0 and not angular == 0: 
-		# backward arc not implemented yet
-		pass
-		
+	elif linear < 0 and not angular == 0:  # backwards arc
+		distance = "-0.33" 
+		angle = str(int(math.degrees(angular))/3)
+		cmd = "arcmove "+distance+" "+angle
+				
 	if not cmd == None:
 		oculusprimesocket.sendString(cmd)
-		print (str(linear)+", "+str(angular)+", "+cmd)
+		# print (str(linear)+", "+str(angular)+", "+cmd)
 
 
 # Main	
