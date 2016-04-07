@@ -1,69 +1,96 @@
 #!/usr/bin/env python
 
-import rospy, oculusprimesocket, math, re
+import rospy, oculusprimesocket, math, re, thread, time
 from geometry_msgs.msg import Twist
 
 lastlinear = 0
 lastangular = 0
+lastmove = 0
+smoothingdelay = 0.3
+twistid = 0
+
 
 def twistCallback(data):
-	global lastlinear, lastangular
+	global twistid
 
 	linear = data.linear.x
 	angular = data.angular.z
 	
-	# determine if moving
-	oculusprimesocket.clearIncoming()
-	oculusprimesocket.sendString("state moving")
-	s = oculusprimesocket.waitForReplySearch("<state> moving")
-	moving = True
-	if (re.search("false",s)):
-		moving = False
+	twistid = rospy.Time.now()
+	thread.start_new_thread(waitifnecessary, (linear, angular, twistid) )
+	# print twistid
 
-	# continue only if not moving or different movement from last
-	if linear == lastlinear and angular == lastangular:
-		if (linear == 0 and angular == 0) or moving:
-			return
+
+def waitifnecessary(linear, angular, threadid):
+
+	if linear == 0 and angular == 0: # always stop immediately
+		move(linear, angular)
+		return
+		
+	while twistid == threadid and smoothingdelay - (rospy.Time.now()-lastmove).to_sec() > 0:
+		rospy.sleep(0.01)
+
+	if twistid == threadid:
+		move(linear, angular)
 	
+	
+def move(linear, angular):
+	global lastlinear, lastangular, lastmove
+	
+	lastmove = rospy.Time.now()
+
+	# don't send repeat stop commands
+	if linear == lastlinear and angular == lastangular and linear == 0 and angular == 0:
+		return
+
 	lastlinear = linear
 	lastangular = angular	
-	
+
 	cmd = None
+	
+	d = "0.3" # .3
+	a = "25" # 40
+	arcmult = 4 # 3
 
 	if linear == 0 and angular == 0:
 		cmd = "move stop"
 		
 	elif linear > 0 and angular == 0:
-		cmd = "forward 0.3"
+		cmd = "forward "+d
 		
 	elif linear < 0 and angular == 0:
-		cmd = "backward 0.3"
+		cmd = "backward "+d
 		
 	elif linear == 0 and angular > 0:
-		cmd = "left 40"
+		cmd = "left "+a
 		
 	elif linear == 0 and angular < 0:
-		cmd = "right 40"
+		cmd = "right "+a
 		
 	elif linear > 0 and not angular == 0:  # forward arc
-		distance = "0.33" 
-		angle = str(int(math.degrees(angular))/3)
-		cmd = "arcmove "+distance+" "+angle
+		angle = str(int(math.degrees(angular))/arcmult)
+		cmd = "arcmove "+d+" "+angle
 	
 	elif linear < 0 and not angular == 0:  # backwards arc
-		distance = "-0.33" 
-		angle = str(int(math.degrees(angular))/3)
-		cmd = "arcmove "+distance+" "+angle
+		angle = str(int(math.degrees(angular))/arcmult)
+		cmd = "arcmove -"+d+" "+angle
 				
 	if not cmd == None:
 		oculusprimesocket.sendString(cmd)
 		# print (str(linear)+", "+str(angular)+", "+cmd)
+		
+		
+def cleanup():
+	oculusprimesocket.sendString("odometrystop")
+	oculusprimesocket.sendString("log cmd_vel_listener.py disconnecting")  # goodbye 
 
 
 # Main	
 
 # initialize node
 rospy.init_node('cmd_vel_listener', anonymous=False)
+rospy.on_shutdown(cleanup)
+lastmove = rospy.Time.now()
 
 # connect to oculusprime java server
 oculusprimesocket.connect()

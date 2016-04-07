@@ -40,7 +40,7 @@ def imgrect_callBack(data):
 	# print data.width  # yeilds 640 default
 	# print data.is_bigendian # yeilds 0 default
 	# print data.encoding # yeilds 32FC1
-	# rospy.signal_shutdown("yo man")
+	# rospy.signal_shutdown("shutdown")
 	
 
 rospy.init_node('openni_imgrect_to_shm', anonymous=False)
