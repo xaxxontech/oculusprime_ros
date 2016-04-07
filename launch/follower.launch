@@ -6,9 +6,11 @@
 	<arg name="publish_tf"  default="false"/>
 	<arg name="skipframes"      default="5"/>
 	<arg name="depth_registration"  default="false"/>
+	<arg name="use_device_time" default="false"/>
 	<arg     if="$(arg depth_registration)" name="depth" value="depth_registered" />
 	<arg unless="$(arg depth_registration)" name="depth" value="depth" />
 	<param name="/camera/driver/data_skip" value="$(arg skipframes)" />
+	<param name="/camera/driver/use_device_time" value="$(arg use_device_time)" />
 
 	<include file="$(find oculusprime)/launch/openni2.launch" >
 		<arg name="publish_tf" value="$(arg publish_tf)"/>
