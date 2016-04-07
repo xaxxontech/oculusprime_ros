@@ -101,4 +101,3 @@ oculusprimesocket.sendString("odometrystart")
 rospy.Subscriber("cmd_vel", Twist, twistCallback)
 
 rospy.spin()
-

@@ -1,11 +1,8 @@
 <launch>
+	
 	<param name="robot_description" textfile="$(find oculusprime)/description/oculusprime.urdf" />
 	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" required="true" />
-	
-<!--
-	<node pkg="oculusprime" type="global_path_follower.py" name="global_path_follower" output="screen"
-		required="true" /> 
--->
+
 	<node pkg="oculusprime" type="arcmove_globalpath_follower.py" name="arcmove_globalpath_follower" output="screen"
 		required="true" /> 
 
@@ -14,16 +11,15 @@
 
 	<include file="$(find oculusprime)/launch/fake_laser.launch" >
 		<arg name="skipframes" value="2" />
-		<arg name="fpscan_enable" value="True" />
+		<arg name="fpscan_enable" value="true" />
+		<arg name="use_device_time" value="false" /> <!-- false for orbbec 2015 drivers -->
 	</include>
-
+	
 	<arg name="map" default="map.yaml" />
 	<node name="map_server" pkg="map_server" type="map_server" args="$(find oculusprime)/maps/$(arg map)"
 		required="true" />
 	<include file="$(find oculusprime)/launch/amcl.launch" />
 
 	<include file="$(find oculusprime)/launch/move_base_dwa.launch" />
-	
-
 	
 </launch>
