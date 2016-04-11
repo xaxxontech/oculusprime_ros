@@ -50,7 +50,7 @@ def move(linear, angular):
 	
 	d = "0.3" # .3
 	a = "25" # 40
-	arcmult = 4 # 3
+	arcmult = 3 # 3
 
 	if linear == 0 and angular == 0:
 		cmd = "move stop"
