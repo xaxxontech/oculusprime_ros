@@ -105,7 +105,7 @@ def intialPoseCallback(data):
 		return
 	# do full rotation on pose estimate, to hone-in amcl (if not docked)
 	rospy.sleep(0.5) # let amcl settle
-	oculusprimesocket.clearIncoming()  # why?
+	oculusprimesocket.clearIncoming()  
 	oculusprimesocket.sendString("right 360")
 	oculusprimesocket.waitForReplySearch("<state> direction stop")
 
