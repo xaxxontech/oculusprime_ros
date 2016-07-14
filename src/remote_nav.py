@@ -317,29 +317,36 @@ while not rospy.is_shutdown():
 				#### recovery routine
 
 				oculusprimesocket.sendString("messageclients recovery rotation")
-				rospy.sleep(5) # allow cpu to settle
-				
-				### new recovery method:
-				
 				oculusprimesocket.clearIncoming()
+				
+				# cancel goal, clear costmaps, generally reset as much as possible
+				move_base.cancel_goal()
+				rospy.wait_for_service('/move_base/clear_costmaps')
+				rospy.ServiceProxy('/move_base/clear_costmaps', Empty)()
+
+				# wait for cpu
+				rospy.sleep(2) 
+				oculusprimesocket.sendString("waitforcpu")
+				oculusprimesocket.waitForReplySearch("<state> waitingforcpu false")
+				
+				# check if cancelled by user while waiting
 				oculusprimesocket.sendString("state rosgoalcancel") 
 				s = oculusprimesocket.waitForReplySearch("<state> rosgoalcancel") 
 				if re.search("rosgoalcancel true", s):
 					goalcancel()
 					continue
 			
-				# clear costmaps, full rotate
-				rospy.wait_for_service('/move_base/clear_costmaps')
-				rospy.ServiceProxy('/move_base/clear_costmaps', Empty)()
+				# resend pose, full rotate
 				publishinitialpose(str(xoffst+odomx)+"_"+str(yoffst+odomy)+"_"+str(thoffst+odomth))
 				# oculusprimesocket.sendString("right 360")
 				oculusprimesocket.waitForReplySearch("<state> direction stop")
 
-				# wait
+				# wait for cpu
 				rospy.sleep(2) 
 				oculusprimesocket.sendString("waitforcpu")
 				oculusprimesocket.waitForReplySearch("<state> waitingforcpu false")
 
+				# check if cancelled by user while waiting
 				oculusprimesocket.sendString("state rosgoalcancel") 
 				s = oculusprimesocket.waitForReplySearch("<state> rosgoalcancel") 
 				if re.search("rosgoalcancel true", s):

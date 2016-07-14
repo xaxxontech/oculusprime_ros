@@ -33,7 +33,7 @@
       <param name="output_frame_id" value="/$(arg camera)_depth_frame"/>
       <param name="range_min" value="0.45"/>
       <param name="floorplane_scan_enable" value="$(arg fpscan_enable)" />
-      <param name="horiz_angle_offset" value="-0.031416" />
+      <param name="horiz_angle_offset" value="0" />
       <remap from="image" to="$(arg camera)/$(arg depth)/image_raw"/>
       <remap from="scan" to="$(arg scan_topic)"/>
       <!-- Somehow topics here get prefixed by "$(arg camera)" when not inside an app namespace,
