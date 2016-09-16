@@ -9,7 +9,7 @@
 
 	<include file="$(find oculusprime)/launch/fake_laser.launch" >
 		<arg name="skipframes" value="1" />
-		<arg name="fpscan_enable" value="False" />
+		<arg name="floorplane_scan_enable" value="False" />
 		<arg name="use_device_time" value="false" /> <!-- false for orbbec 2015 drivers -->
 	</include>
 	<include file="$(find oculusprime)/launch/gmapping.launch" />	
