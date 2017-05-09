@@ -17,12 +17,13 @@ import oculusprimesocket
 pos = [0.0, 0.0, 0.0]
 before = 0
 now = 0
-lag = 0.035 # 0.075 = xtion (using device time)  0.035 = astra (using system time)
+default_lag = 0.035 # 0.075 = xtion (using device time)  0.035 = astra (using system time)
 
 
 def broadcast(s):
 	global before, pos, now
-	now = rospy.Time.now() - rospy.Duration(lag) # 0.05 subtract socket + serial + fifo read lag 0.075 = tested with rviz odom only 
+	now = rospy.Time.now() - rospy.Duration(rospy.get_param('~odom_lag', default_lag))
+				# 0.05 subtract socket + serial + fifo read lag 0.075 = tested with rviz odom only 
 	dt = (now-before).to_sec()
 	before = now
 
@@ -88,6 +89,8 @@ oculusprimesocket.sendString("log odom_tf.py connected")
 oculusprimesocket.sendString("state odometrybroadcast 250")  # ms, needs to be set prior to odometrystart
 oculusprimesocket.sendString("odometrystart")
 broadcast("* * 0 0".split()) # broadcast zero odometry baseline
+
+# print (rospy.get_param('~odom_lag', default_lag))
 
 while not rospy.is_shutdown():
 

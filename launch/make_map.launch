@@ -2,8 +2,8 @@
 <launch>
 	<param name="robot_description" textfile="$(find oculusprime)/description/oculusprime.urdf" />
 
-
 	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" />
+	
 	<node pkg="tf" type="static_transform_publisher" name="base_to_xtion_broadcaster" 
 		args="-0.054 0.02 0.29 0 0 0 base_link camera_depth_frame 100" />
 
@@ -12,8 +12,8 @@
 		<arg name="fpscan_enable" value="False" />
 		<arg name="use_device_time" value="false" /> <!-- false for orbbec 2015 drivers -->
 	</include>
-	<include file="$(find oculusprime)/launch/gmapping.launch" />	
 	
+	<include file="$(find oculusprime)/launch/gmapping.launch" />	
 	
 	<node pkg="oculusprime" type="map_remote.py" name="map_remote" />
 

@@ -1,0 +1,17 @@
+<launch>
+	
+	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" required="true" output="screen" >
+		<param name="odom_lag" value="0.035"/> 
+	</node>
+
+	<node pkg="tf" type="static_transform_publisher" name="base_to_orbbec_broadcaster" 
+		args="-0.054 0.048 0.29 0 0 0 /base_link /camera_depth_frame 100" />
+	
+	<include file="$(find oculusprime)/launch/fake_laser.launch" >
+		<arg name="skipframes" value="0" />
+		<arg name="floorplane_scan_enable" value="false" />
+		<arg name="use_device_time" value="false" /> <!-- false for orbbec 2015 drivers -->
+	</include>
+
+	
+</launch>

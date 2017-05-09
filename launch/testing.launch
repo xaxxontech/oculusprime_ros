@@ -1,0 +1,17 @@
+<launch>
+	
+	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" required="true" output="screen" >
+		<param name="odom_lag" value="0.14"/> 
+	</node>
+
+	<node pkg="tf" type="static_transform_publisher" name="base_to_neato_lidar_broadcaster" 
+	args="-0.063 0.0 0.359 0 0 0 /base_link /neato_laser 100" /> 
+	
+	<node pkg="oculusprime" type="neato_rpm_controller.py" name="neato_rpm_controller" output="screen"
+	required="true" /> 
+	
+	<node pkg="xv_11_laser_driver" type="neato_laser_publisher" name="neato_laser_publisher"
+	args="_port:=/dev/sensors/ftdi_A700eDKk _firmware_version:=2" required="true" /> 
+
+	
+</launch>
