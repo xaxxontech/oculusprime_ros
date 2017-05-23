@@ -1,18 +1,17 @@
 # OCULUSPRIME_ROS #
 
-![Alt text](http://www.xaxxon.com/resources/news/oculusprime_elevation_400.jpg)
+ROS repository for Xaxxon's **Oculus Prime SLAM Navigator** Mobile Robot
 
+![Xaxxon Oculus Prime SLAM Navigator](http://www.xaxxon.com/images/oculusprime/oculusprime_elevation.jpg)
+
+Product web site:
+[ xaxxon.com/oculusprime/slamnavigator ](http://www.xaxxon.com/oculusprime/slamnavigator)
+
+ROS portal:
 [ wiki.ros.org/Robots/Oculus_Prime ](http://wiki.ros.org/Robots/Oculus_Prime)
 
-[ xaxxon.com/oculusprime ](http://www.xaxxon.com/oculusprime)
+Documentation:
+[ xaxxon.com/documentation/view/oculus-prime-ros ](http://www.xaxxon.com/documentation/view/oculus-prime-ros)
 
-Linux Ubuntu 14.04 x64 Python ROS-Indigo
 
-#Runtime Dependencies:#
-
-    ros-indigo-move-base ros-indigo-map-server 
-    ros-indigo-depthimage-to-laserscan ros-indigo-amcl 
-    ros-indigo-openni2-launch ros-indigo-openni2-camera 
-    ros-indigo-dwa-local-planner ros-indigo-gmapping 
-
-and [ Oculus Prime Server Java ](https://www.xaxxon.com/oculusprime/download)
+Linux XUbuntu 14.04/16.04 x64, Python, Java 8, ROS-Indigo/Jade/Kinetic
