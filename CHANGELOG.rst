@@ -2,8 +2,8 @@
 Changelog for package oculusprime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.1 (2017-06-01)
+------------------
 * readme modified
 * floorplane_scan_enable mapping launch param change bugfix
 * default astra horiz offset -1 deg
