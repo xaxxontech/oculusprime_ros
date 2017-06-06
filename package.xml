@@ -2,7 +2,7 @@
 <package>
   <name>oculusprime</name>
   <version>0.1.1</version>
-  <description>Oculus Prime</description>
+  <description>Oculus Prime ROS Interface</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
@@ -14,6 +14,9 @@
   <!-- Commonly used license strings: -->
   <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
   <license>BSD</license>
+  
+  <url type="bugtracker">https://github.com/xaxxontech/oculusprime_ros/issues</url>
+  <author>Colin Adamson</author>
 
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>rospy</build_depend>
