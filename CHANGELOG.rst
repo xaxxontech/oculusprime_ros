@@ -2,6 +2,12 @@
 Changelog for package oculusprime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* add empty param folder
+* package.xml updated
+* Contributors: xaxxontech
+
 0.1.1 (2017-06-01)
 ------------------
 * readme modified
