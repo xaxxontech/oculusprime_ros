@@ -1,0 +1,13 @@
+<launch>
+	
+	<param name="robot_description" textfile="$(find oculusprime)/description/oculusprime.urdf" />
+
+	<node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+	
+	<node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+		<param name="publish_frequency" type="double" value="30.0" />
+	</node>
+	
+	<node pkg="rviz" type="rviz" name="rviz"/>
+		
+</launch>
