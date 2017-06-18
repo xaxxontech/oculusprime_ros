@@ -12,7 +12,7 @@
 			<!--
              <box size="0.275 0.283 0.306" />
              -->
-             <mesh filename="package://oculusprime/description/oculus_prime_urdf.stl" scale="0.0254 0.0254 0.0254"/>
+             <mesh filename="package://oculusprime/description/meshes/oculus_prime_urdf.stl" scale="0.0254 0.0254 0.0254"/>
 		</geometry>
 		
       <material name="grey">

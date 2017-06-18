@@ -3,6 +3,12 @@
 	<param name="robot_description" textfile="$(find oculusprime)/description/oculusprime.urdf" />
 	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" required="true" />
 
+	<node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+	
+	<node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+		<param name="publish_frequency" type="double" value="30.0" />
+	</node>
+
 	<node pkg="oculusprime" type="arcmove_globalpath_follower.py" name="arcmove_globalpath_follower" output="screen"
 		required="true" /> 
 
@@ -21,5 +27,7 @@
 	<include file="$(find oculusprime)/launch/amcl.launch" />
 
 	<include file="$(find oculusprime)/launch/move_base_dwa.launch" />
+
+	<node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
 	
 </launch>

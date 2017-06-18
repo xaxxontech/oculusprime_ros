@@ -1,7 +1,7 @@
 <?xml version='1.0'?>
 
-<robot name="oculus_prime">
-
+<robot name="oculusprime" xmlns:xacro="http://ros.org/wiki/xacro">
+    
 	<link name="base_link">
 		<inertial>
 			<origin xyz="0 0 0.08" rpy="0 0 0" />
@@ -175,6 +175,9 @@
 		</inertial>
 	</link>
 	
+	<!-- astra -->
+	<xacro:include filename="$(find oculusprime)/description/astra.urdf.xacro"/>
+	<sensor_astra parent="base_link"/>
 	
 	<!-- gazebo specific stuff -->
 	<gazebo reference="front_right_wheel_link">
@@ -236,12 +239,15 @@
           </noise>
 	      </imu>
       </sensor>
-	  </gazebo>
+	</gazebo>
 
 	<gazebo>
 		<plugin name="skidsteer_controller" filename="libgazebo_ros_skid_steer_drive.so">
 
-			<publish_tf>1</publish_tf>
+			<commandTopic>cmd_vel</commandTopic>
+			<broadcastTF>true</broadcastTF>
+			<odometryTopic>odom</odometryTopic>
+			<odometryFrame>odom</odometryFrame>
 
 			<leftFrontJoint>front_left_wheel_joint</leftFrontJoint>
 			<rightFrontJoint>front_right_wheel_joint</rightFrontJoint>
@@ -253,10 +259,16 @@
 
 			<torque>1.0</torque>
 			<robotBaseFrame>base_link</robotBaseFrame>
+			<updateRate>30</updateRate>
 
 		</plugin>
 	</gazebo>
-	  
+	
+	<gazebo>
+		<plugin name="gazebo_joint_state_publisher" filename="libgazebo_ros_joint_state_publisher.so">
+		</plugin>
+	</gazebo>
+	
 </robot>
 
 			
