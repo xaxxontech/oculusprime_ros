@@ -1,6 +1,6 @@
 <launch>
 
-	<!-- world --> <!-- TODO: use stock or custom world --> 
+	<!-- world -->
 	<arg name="world_file"  default="$(find oculusprime)/worlds/playground.world"/> 
 	<arg name="gui" default="true"/>
 	<include file="$(find gazebo_ros)/launch/empty_world.launch">

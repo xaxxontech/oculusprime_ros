@@ -2,14 +2,14 @@
 <robot name="sensor_astra" xmlns:xacro="http://ros.org/wiki/xacro">
 
 	<!-- Xacro properties -->
-	<xacro:property name="astra_cam_py" value="-0.0125"/>
+	<xacro:property name="astra_cam_py" value="0.0125"/> <!-- -0.0125 -->
 	<xacro:property name="astra_depth_rel_rgb_py" value="0.0250" />
 	<xacro:property name="astra_cam_rel_rgb_py"   value="-0.0125" />
 	<xacro:property name="astra_dae_display_scale"   value="1" />
   
-	<xacro:property name="cam_px" value="-0.054" /> <!-- -0.087 -->
+	<xacro:property name="cam_px" value="-0.0545" /> <!-- -0.087 -->
 	<!--	<xacro:property name="cam_py" value="-0.0125" /> Y varies for different configurations. get sets in sensors_urdf -->
-	<xacro:property name="cam_pz" value="0.2870" />
+	<xacro:property name="cam_pz" value="0.2930" />
 	<xacro:property name="cam_or" value="0" />
 	<xacro:property name="cam_op" value="0" />
 	<xacro:property name="cam_oy" value="0" />
@@ -47,12 +47,10 @@ camera visual/collision: y + astra_cam_rel_rgb_py (-0.0125)
     </joint>
     <link name="camera_link">
       <visual>
-<!--
-        <origin xyz="-0.04 0.02 -0.01" rpy="0 0 0"/>
--->
-        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <origin xyz="-.030 0 -.008" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://oculusprime/description/meshes/orbbec_astra_camera.dae" scale="${astra_dae_display_scale} ${astra_dae_display_scale} ${astra_dae_display_scale}"/>
+          <mesh filename="package://oculusprime/description/meshes/orbbec_astra_camera.dae" 
+			scale="${astra_dae_display_scale} ${astra_dae_display_scale} ${astra_dae_display_scale}"/>
         </geometry>
       </visual>
       <collision>

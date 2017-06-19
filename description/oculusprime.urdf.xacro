@@ -1,10 +1,11 @@
 <?xml version='1.0'?>
 
 <robot name="oculusprime" xmlns:xacro="http://ros.org/wiki/xacro">
+<xacro:property name="M_PI" value="3.1415926535897931" /> 
     
 	<link name="base_link">
 		<inertial>
-			<origin xyz="0 0 0.08" rpy="0 0 0" />
+			<origin xyz="0 0 0.06" rpy="0 0 0" />
 			<mass value="4.0"/>
 			<inertia ixx="0.0227"
 				iyy="0.0359"
@@ -15,29 +16,28 @@
 		</inertial>
 		
 		<collision>
-			<origin xyz="0 0 0.155" rpy="0 0 0" />
+			<origin xyz="-0.0064 0 0.1517" rpy="0 0 0" />
 			<geometry>
-				<box size=".275 .19 .275"/>
+				<box size=".2818 .19 .2595"/>
 			</geometry>
 		</collision>
 
 		<visual>
-			<origin xyz="0 0 0" rpy="0 0 0" />
+			<origin xyz="0.0127 0 .0808" rpy="0 0 ${M_PI/2}" />
 			<geometry>
 				<mesh filename="package://oculusprime/description/meshes/chassis.dae" />
 			</geometry>
-
-			<material name="grey">
-			<color rgba="0.4 0.4 0.4 1.0"/>
-			</material>
 		</visual>
 				
 	</link>
 	
-	
+	<material name="black">
+		<color rgba="0.1 0.1 0.1 1.0"/>
+	</material>
+			
 	<!-- wheels -->
 	<joint type="continuous" name="front_right_wheel_joint">
-		<origin xyz="0.0635 -0.1186 0.057" rpy="0 1.5707 1.5707"/>
+		<origin xyz="0.0635 -0.1186 0.057" rpy="0 ${M_PI/2} ${M_PI/2}"/>
 		<parent link="base_link"/>
 		<child link="front_right_wheel_link"/>
 		<axis xyz="0 0 1"/>
@@ -56,9 +56,7 @@
 			<geometry>
 				<cylinder radius="0.057" length="0.046" />
 			</geometry>
-			<material name="black">
-				<color rgba="0.05 0.05 0.05 1.0"/>
-			</material>
+			<material name="black"/>
 		</visual>
 		
 		<inertial>
@@ -72,7 +70,7 @@
 	
 	
 	<joint type="continuous" name="front_left_wheel_joint">
-		<origin xyz="0.0635 0.1186 0.057" rpy="0 1.5707 1.5707"/>
+		<origin xyz="0.0635 0.1186 0.057" rpy="0 ${M_PI/2} ${M_PI/2}"/>
 		<child link="front_left_wheel_link"/>
 		<parent link="base_link"/>
 		<axis xyz="0 0 1"/>
@@ -91,9 +89,7 @@
 			<geometry>
 				<cylinder radius="0.057" length="0.046" />
 			</geometry>
-			<material name="black">
-				<color rgba="0.05 0.05 0.05 1.0"/>
-			</material>
+			<material name="black"/>
 		</visual>
 		
 		<inertial>
@@ -107,7 +103,7 @@
 
 
 	<joint type="continuous" name="rear_right_wheel_joint">
-		<origin xyz="-0.0635 -0.1186 0.057" rpy="0 1.5707 1.5707"/>
+		<origin xyz="-0.0635 -0.1186 0.057" rpy="0 ${M_PI/2} ${M_PI/2}"/>
 		<child link="rear_right_wheel_link"/>
 		<parent link="base_link"/>
 		<axis xyz="0 0 1"/>
@@ -126,9 +122,7 @@
 			<geometry>
 				<cylinder radius="0.057" length="0.046" />
 			</geometry>
-			<material name="black">
-				<color rgba="0.05 0.05 0.05 1.0"/>
-			</material>
+			<material name="black"/>
 		</visual>
 		
 		<inertial>
@@ -142,7 +136,7 @@
 	
 	
 	<joint type="continuous" name="rear_left_wheel_joint">
-		<origin xyz="-0.0635 0.1186 0.057" rpy="0 1.5707 1.5707"/>
+		<origin xyz="-0.0635 0.1186 0.057" rpy="0 ${M_PI/2} ${M_PI/2}"/>
 		<child link="rear_left_wheel_link"/>
 		<parent link="base_link"/>
 		<axis xyz="0 0 1"/>
@@ -161,9 +155,7 @@
 			<geometry>
 				<cylinder radius="0.057" length="0.046" />
 			</geometry>
-			<material name="black">
-				<color rgba="0.05 0.05 0.05 1.0"/>
-			</material>
+			<material name="black"/>
 		</visual>
 		
 		<inertial>
@@ -187,6 +179,7 @@
 		<kd>100.0</kd>
 		<minDepth>0.001</minDepth>
 		<maxVel>1.0</maxVel>
+		<material>Gazebo/DarkGrey</material>
 	</gazebo>
 
 	<gazebo reference="front_left_wheel_link">
@@ -196,6 +189,7 @@
 		<kd>100.0</kd>
 		<minDepth>0.001</minDepth>
 		<maxVel>1.0</maxVel>
+		<material>Gazebo/DarkGrey</material>
 	</gazebo>
 	
 	<gazebo reference="rear_right_wheel_link">
@@ -205,6 +199,7 @@
 		<kd>100.0</kd>
 		<minDepth>0.001</minDepth>
 		<maxVel>1.0</maxVel>
+		<material>Gazebo/DarkGrey</material>
 	</gazebo>
 
 	<gazebo reference="rear_left_wheel_link">
@@ -214,7 +209,24 @@
 		<kd>100.0</kd>
 		<minDepth>0.001</minDepth>
 		<maxVel>1.0</maxVel>
+		<material>Gazebo/DarkGrey</material>
 	</gazebo>
+	
+	<joint name="gyro_joint" type="fixed">
+      <axis xyz="0 1 0"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <parent link="base_link"/>
+      <child link="gyro_link"/>
+    </joint>
+    <link name="gyro_link">
+      <inertial>
+        <mass value="0.001"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <inertia ixx="0.0001" ixy="0" ixz="0"
+                 iyy="0.000001" iyz="0"
+                 izz="0.0001"/>
+      </inertial>
+    </link>
 	
 	<gazebo reference="gyro_link">
 	   <sensor type="imu" name="imu">
