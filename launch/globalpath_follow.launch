@@ -1,6 +1,6 @@
 <launch>
 	
-	<param name="robot_description" textfile="$(find oculusprime)/description/oculusprime.urdf" />
+	<param name="robot_description" textfile="$(find oculusprime)/description/oculusprime_simple.urdf" />
 	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" required="true" />
 
 	<node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
@@ -27,7 +27,5 @@
 	<include file="$(find oculusprime)/launch/amcl.launch" />
 
 	<include file="$(find oculusprime)/launch/move_base_dwa.launch" />
-
-	<node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
 	
 </launch>
