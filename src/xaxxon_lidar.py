@@ -37,7 +37,9 @@ else:
 	# start lidar	
 	ser.write("1\n") # enable lidar
 	ser.write("b\n") # enable broadcast
-	ser.write("g\n") # start rotation
+	ser.write("g\n") # start rotation, full speed
+	
+	""" slower speed option: """
 	# ser.write("m")
 	# ser.write(chr(99))
 	# ser.write("\n")
@@ -47,9 +49,10 @@ else:
 
 raw_data = []
 scannum = 0
+lastscan = rospy.Time.now()
 
 while not rospy.is_shutdown() and ser.is_open:
-	# read data and dump into array, checking for header code 0xFF,0xFF
+	# read data and dump into array, checking for header code 0xFF,0xFF,0xFF
 	ch = ser.read(1)
 	raw_data.append(ch)
 	if not ord(ch) == 0xFF:
@@ -59,47 +62,68 @@ while not rospy.is_shutdown() and ser.is_open:
 		raw_data.append(ch)
 		if not ord(ch) == 0xFF:
 			continue
-		
+		else: 
+			ch = ser.read(1)
+			raw_data.append(ch)
+			if not ord(ch) == 0xFF:
+				continue
+			
 	# read header count		
 	low = ord(ser.read(1))
 	high = ord(ser.read(1))
 	count = (high<<8)|low
 	
 	#read header cycle
-	low = ord(ser.read(1))
-	high = ord(ser.read(1))
-	cycle = ((high<<8)|low)/1000.0
+	# low = ord(ser.read(1))
+	# high = ord(ser.read(1))
+	# cycle = ((high<<8)|low)/1000.0
 
-	print "cycle: "+str(cycle)
+	current_time = rospy.Time.now()
+	cycle = current_time - lastscan
+	lastscan = current_time
+
+	scannum += 1	
+	if scannum <= 7: # drop 1st few scans while lidar spins up
+		del raw_data[:]
+		continue
+
+	print "cycle: "+str(cycle.to_sec())
 	print "count: "+str(count)
 	# print "raw_data length: "+str(len(raw_data))
 	print " "
 	
-	scannum += 1	
-	if scannum < 11: # drop 1st few scans while lidar spins up
-		del raw_data[:]
-		continue
-	
-	current_time = rospy.Time.now()
 	scan = LaserScan()
-
-	scan.header.stamp = current_time - rospy.Duration(cycle+.015)
+	scan.header.stamp = lastscan - cycle - rospy.Duration(0.03)
 	scan.header.frame_id = 'laser_frame'
 	scan.angle_min = 0.0
+	angle_inc = 2 * math.pi / count
 	scan.angle_max = 2 * math.pi
-	scan.angle_increment = 2 * math.pi / (count+1)
-	scan.time_increment =  cycle/count
-	scan.range_min = 0.08
+	scan.angle_increment = angle_inc
+
+	scan.time_increment =  cycle.to_sec()/count
+	scan.range_min = 0.01
 	scan.range_max = 20.0
 
-	# scan.ranges[0:count-1] = raw_data[len(raw_data)-count-3:len(raw_data)-3]
-	scan.ranges = []
-	for x in range(len(raw_data)-(count*2)-2, len(raw_data)-2, 2):
+
+	temp = []
+	for x in range(len(raw_data)-(count*2)-3, len(raw_data)-3, 2):
 		low = ord(raw_data[x])
 		high = ord(raw_data[x+1])
-		scan.ranges.append(((high<<8)|low) / 100.0)
+		temp.append(((high<<8)|low) / 100.0)
+
+	split = int(13/360.0*count)  # mitigate tilt
+	scan.ranges = temp[split:]+temp[0:split]
+
+	#masking frame
+	maskwidth = 8 # half width, degrees
+	masks = [265, 295, 100, 130]
+	for m in masks:
+		for x in range(int(count*((m-maskwidth)/360.0)), int(count*((m+maskwidth)/360.0)) ):
+			scan.ranges[x] = 0
+		
 
 	scan_pub.publish(scan)
 
 	del raw_data[:] 
+
 
