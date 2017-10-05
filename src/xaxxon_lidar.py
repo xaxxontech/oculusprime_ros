@@ -15,7 +15,7 @@ def cleanup():
 
 rospy.init_node('xaxxon_lidar', anonymous=False)
 rospy.on_shutdown(cleanup)
-scan_pub = rospy.Publisher('scan', LaserScan, queue_size=2)
+scan_pub = rospy.Publisher('scan', LaserScan, queue_size=3)
 
 
 # connect
@@ -37,11 +37,12 @@ else:
 	# start lidar	
 	ser.write("1\n") # enable lidar
 	ser.write("b\n") # enable broadcast
+	
 	ser.write("g\n") # start rotation, full speed
 	
 	""" slower speed option: """
 	# ser.write("m")
-	# ser.write(chr(99))
+	# ser.write(chr(79))
 	# ser.write("\n")
 
 	# clear buffer
@@ -67,43 +68,63 @@ while not rospy.is_shutdown() and ser.is_open:
 			raw_data.append(ch)
 			if not ord(ch) == 0xFF:
 				continue
-			
-	# read header count		
+
+	# read count		
 	low = ord(ser.read(1))
 	high = ord(ser.read(1))
 	count = (high<<8)|low
+
+	# read last distance offset
+	low = ord(ser.read(1))
+	high = ord(ser.read(1))
+	lastDistanceOffset = ((high<<8)|low)/1000000.0
+
+	# read first distance offset
+	low = ord(ser.read(1))
+	high = ord(ser.read(1))
+	firstDistanceOffset = ((high<<8)|low)/1000000.0
 	
-	#read header cycle
-	# low = ord(ser.read(1))
-	# high = ord(ser.read(1))
-	# cycle = ((high<<8)|low)/1000.0
+	# read cycle
+	c1 = ord(ser.read(1))
+	c2 = ord(ser.read(1))
+	c3 = ord(ser.read(1))
+	c4 = ord(ser.read(1))
+	cycle = ((c4<<24)|(c3<<16)|(c2<<8)|c1)/1000000.0
 
 	current_time = rospy.Time.now()
-	cycle = current_time - lastscan
+	rospycycle = current_time - lastscan
 	lastscan = current_time
+
+	if not count == 0:
+		print "cycle: "+str(cycle)
+		print "rospycycle: "+str(rospycycle.to_sec())
+		print "count: "+str(count)
+		print "lastDistanceOffset: "+str(lastDistanceOffset)
+		print "firstDistanceOffset: "+str(firstDistanceOffset)
+		# print "raw_data length: "+str(len(raw_data))
+		print "scannum: "+str(scannum)
+		print "interval: "+str(cycle/count)
+		print " "
 
 	scannum += 1	
 	if scannum <= 7: # drop 1st few scans while lidar spins up
 		del raw_data[:]
 		continue
-
-	print "cycle: "+str(cycle.to_sec())
-	print "count: "+str(count)
-	# print "raw_data length: "+str(len(raw_data))
-	print " "
 	
 	scan = LaserScan()
-	scan.header.stamp = lastscan - cycle - rospy.Duration(0.03)
+	scan.header.stamp = lastscan - rospy.Duration(cycle + 0.03)
 	scan.header.frame_id = 'laser_frame'
-	scan.angle_min = 0.0
-	angle_inc = 2 * math.pi / count
-	scan.angle_max = 2 * math.pi
-	scan.angle_increment = angle_inc
 
-	scan.time_increment =  cycle.to_sec()/count
-	scan.range_min = 0.01
+	# scan.angle_min = 0
+	# scan.angle_max = (2 * math.pi) 
+
+	scan.angle_min = (firstDistanceOffset/cycle) * (2 * math.pi)
+	scan.angle_max = (2 * math.pi) - ((lastDistanceOffset/cycle)  * (2 * math.pi))
+
+	scan.angle_increment = 2 * math.pi / count
+	scan.time_increment =  cycle/count
+	scan.range_min = 0.05
 	scan.range_max = 20.0
-
 
 	temp = []
 	for x in range(len(raw_data)-(count*2)-3, len(raw_data)-3, 2):
@@ -111,7 +132,9 @@ while not rospy.is_shutdown() and ser.is_open:
 		high = ord(raw_data[x+1])
 		temp.append(((high<<8)|low) / 100.0)
 
-	split = int(13/360.0*count)  # mitigate tilt
+	# mitigate rpm sensor offset
+	tilt = 13
+	split = int(tilt/360.0*count)
 	scan.ranges = temp[split:]+temp[0:split]
 
 	#masking frame
