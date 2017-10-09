@@ -108,7 +108,6 @@ def intialPoseCallback(data):
 	oculusprimesocket.clearIncoming()  
 	oculusprimesocket.sendString("right 360")
 	oculusprimesocket.waitForReplySearch("<state> direction stop")
-
 	
 def goalCallback(d):
 	global goalx, goaly, goalth, goalpose, lastpath, initialturn, followpath, nextmove

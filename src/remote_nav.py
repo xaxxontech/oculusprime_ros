@@ -205,9 +205,11 @@ def sendScan():
 	global scanpoints
 	
 	s = "state rosscan "
-	
-	step = 8 
 	size = len(scanpoints)
+	
+	step = 8  # vga depth cam, size typically 640
+	if (size < 300):
+		step = 2; # xaxxon lidar
 	i = 0
 	while i < size-step:
 		s += str(round(scanpoints[i],3))+","

@@ -1,0 +1,11 @@
+
+<launch>
+	
+	<include file="$(find oculusprime)/launch/xaxxon_lidar_mapping.launch" />	
+	
+	<node pkg="oculusprime" type="map_remote.py" name="map_remote" />
+
+
+</launch>
+
+

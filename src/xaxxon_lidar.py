@@ -91,20 +91,19 @@ while not rospy.is_shutdown() and ser.is_open:
 	c4 = ord(ser.read(1))
 	cycle = ((c4<<24)|(c3<<16)|(c2<<8)|c1)/1000000.0
 
-	current_time = rospy.Time.now()
-	rospycycle = current_time - lastscan
+	current_time = rospy.Time.now() # - rospy.Duration(0.035)
+	# rospycycle = current_time - lastscan
 	lastscan = current_time
-
-	if not count == 0:
-		print "cycle: "+str(cycle)
-		print "rospycycle: "+str(rospycycle.to_sec())
-		print "count: "+str(count)
-		print "lastDistanceOffset: "+str(lastDistanceOffset)
-		print "firstDistanceOffset: "+str(firstDistanceOffset)
-		# print "raw_data length: "+str(len(raw_data))
-		print "scannum: "+str(scannum)
-		print "interval: "+str(cycle/count)
-		print " "
+	
+	# if not count == 0:
+		# print "cycle: "+str(cycle)
+		# print "rospycycle: "+str(rospycycle.to_sec())
+		# print "count: "+str(count)
+		# print "lastDistanceOffset: "+str(lastDistanceOffset)
+		# print "firstDistanceOffset: "+str(firstDistanceOffset)
+		# print "scannum: "+str(scannum)
+		# print "interval: "+str(cycle/count)
+		# print " "
 
 	scannum += 1	
 	if scannum <= 7: # drop 1st few scans while lidar spins up
