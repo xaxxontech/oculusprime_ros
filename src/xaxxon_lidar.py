@@ -112,7 +112,7 @@ while not rospy.is_shutdown() and ser.is_open:
 		continue
 	
 	scan = LaserScan()
-	scan.header.stamp = lastscan - rospy.Duration(cycle + 0.03)
+	scan.header.stamp = current_time - rospy.Duration(cycle)
 	scan.header.frame_id = 'laser_frame'
 
 	# scan.angle_min = 0
