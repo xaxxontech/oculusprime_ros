@@ -105,9 +105,9 @@ def intialPoseCallback(data):
 		return
 	# do full rotation on pose estimate, to hone-in amcl (if not docked)
 	rospy.sleep(0.5) # let amcl settle
-	oculusprimesocket.clearIncoming()  
-	oculusprimesocket.sendString("right 360")
-	oculusprimesocket.waitForReplySearch("<state> direction stop")
+	# oculusprimesocket.clearIncoming()  
+	# oculusprimesocket.sendString("right 360")
+	# oculusprimesocket.waitForReplySearch("<state> direction stop")
 	
 def goalCallback(d):
 	global goalx, goaly, goalth, goalpose, lastpath, initialturn, followpath, nextmove
@@ -138,7 +138,7 @@ def goalStatusCallback(data):
 				
 def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 	
-	global initialturn, waitonaboutface, nextmove
+	global initialturn, waitonaboutface, nextmove	
 	
 	# global path targets
 	gpdx = gpx - ox
@@ -181,7 +181,7 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 		radius = (distance/2)/math.sin(dth/2)
 		arclength = radius * dth # *should* work out to always be > 0
 		if not arclength == 0:
-			if abs(dth/arclength) > dpmthreshold: #  1.57:
+			if abs(dth/arclength) > dpmthreshold:
 				arclength = 0
 				# print ("high dpm")
 
@@ -212,7 +212,6 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 			waitonaboutface += 1 # only do this once
 			rospy.sleep(1.5)
 			nextmove = rospy.get_time() + listentime
-			# print("pausing...")
 			return
 	waitonaboutface = 0
 
@@ -315,9 +314,9 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 			waitonaboutface += 1 # only do this once
 			rospy.sleep(1.5)
 			nextmove = rospy.get_time() + listentime
-			return
-		
+			return		
 	waitonaboutface = 0
+	
 	initialturn = False
 
 	if not pathid == currentpathid:			

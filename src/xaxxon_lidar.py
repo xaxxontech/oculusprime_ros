@@ -53,7 +53,7 @@ scannum = 0
 lastscan = rospy.Time.now()
 
 while not rospy.is_shutdown() and ser.is_open:
-	# read data and dump into array, checking for header code 0xFF,0xFF,0xFF
+	# read data and dump into array, checking for header code 0xFF,0xFF,0xFF,0xFF
 	ch = ser.read(1)
 	raw_data.append(ch)
 	if not ord(ch) == 0xFF:
@@ -68,6 +68,12 @@ while not rospy.is_shutdown() and ser.is_open:
 			raw_data.append(ch)
 			if not ord(ch) == 0xFF:
 				continue
+				
+			else: 
+				ch = ser.read(1)
+				raw_data.append(ch)
+				if not ord(ch) == 0xFF:
+					continue
 
 	# read count		
 	low = ord(ser.read(1))
@@ -92,7 +98,7 @@ while not rospy.is_shutdown() and ser.is_open:
 	cycle = ((c4<<24)|(c3<<16)|(c2<<8)|c1)/1000000.0
 
 	current_time = rospy.Time.now() # - rospy.Duration(0.035)
-	# rospycycle = current_time - lastscan
+	rospycycle = current_time - lastscan
 	lastscan = current_time
 	
 	# if not count == 0:
@@ -103,6 +109,7 @@ while not rospy.is_shutdown() and ser.is_open:
 		# print "firstDistanceOffset: "+str(firstDistanceOffset)
 		# print "scannum: "+str(scannum)
 		# print "interval: "+str(cycle/count)
+		# print "raw_data length: "+str((len(raw_data)-2)/2)
 		# print " "
 
 	scannum += 1	
@@ -110,8 +117,12 @@ while not rospy.is_shutdown() and ser.is_open:
 		del raw_data[:]
 		continue
 	
+	#sanity check
+	# if not (len(raw_data)-3)/2 == count:
+		# print "*** COUNT/DATA MISMATCH *** "+ str( (len(raw_data)-3)/2-count)
+
 	scan = LaserScan()
-	scan.header.stamp = current_time - rospy.Duration(cycle)
+	scan.header.stamp = current_time - rospy.Duration(cycle) 
 	scan.header.frame_id = 'laser_frame'
 
 	# scan.angle_min = 0
@@ -126,7 +137,7 @@ while not rospy.is_shutdown() and ser.is_open:
 	scan.range_max = 20.0
 
 	temp = []
-	for x in range(len(raw_data)-(count*2)-3, len(raw_data)-3, 2):
+	for x in range(len(raw_data)-(count*2)-4, len(raw_data)-4, 2):
 		low = ord(raw_data[x])
 		high = ord(raw_data[x+1])
 		temp.append(((high<<8)|low) / 100.0)

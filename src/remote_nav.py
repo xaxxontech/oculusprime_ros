@@ -47,6 +47,7 @@ recoveryrotate = False
 goal = None
 turnspeed = 100
 secondspertwopi = 4.2 # calibration, automate? (do in java, faster)
+# docked = False
 
 def mapcallBack(data):
 	global lockfilepath
@@ -147,6 +148,8 @@ def sendGlobalPath(path):
 	oculusprimesocket.sendString(s)
 
 def publishinitialpose(str):
+	# global docked
+	
 	s = str.split("_")
 	x = float(s[0])
 	y = float(s[1])
@@ -165,8 +168,14 @@ def publishinitialpose(str):
 	pose.pose.pose.orientation.y = quat[1]
 	pose.pose.pose.orientation.z = quat[2]
 	pose.pose.pose.orientation.w = quat[3]
+
+	# if not docked: 
+		# pose.pose.covariance = [0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06853891945200942]
+	# docked = False # only skip covariance set on initial docked position
+
 	pose.pose.covariance = [0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06853891945200942]
-	
+
+
 	initpose_pub.publish(pose)
 		
 def publishgoal(str):
@@ -251,6 +260,10 @@ oculusprimesocket.sendString("state delete rosglobalpath")
 oculusprimesocket.sendString("state delete rosmapinfo")
 oculusprimesocket.sendString("state delete rosscan")
 oculusprimesocket.sendString("state delete rosgoalstatus")
+
+# oculusprimesocket.sendString("state dockstatus")
+# if oculusprimesocket.waitForReplySearch("<state> dockstatus").split()[3] == "docked":
+	# docked = True
 	
 rospy.Subscriber("map", OccupancyGrid, mapcallBack)
 rospy.Subscriber("odom", Odometry, odomCallback)
