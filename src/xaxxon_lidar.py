@@ -51,6 +51,7 @@ else:
 raw_data = []
 scannum = 0
 lastscan = rospy.Time.now()
+headercodesize = 4
 
 while not rospy.is_shutdown() and ser.is_open:
 	# read data and dump into array, checking for header code 0xFF,0xFF,0xFF,0xFF
@@ -68,7 +69,6 @@ while not rospy.is_shutdown() and ser.is_open:
 			raw_data.append(ch)
 			if not ord(ch) == 0xFF:
 				continue
-				
 			else: 
 				ch = ser.read(1)
 				raw_data.append(ch)
@@ -109,17 +109,15 @@ while not rospy.is_shutdown() and ser.is_open:
 		# print "firstDistanceOffset: "+str(firstDistanceOffset)
 		# print "scannum: "+str(scannum)
 		# print "interval: "+str(cycle/count)
-		# print "raw_data length: "+str((len(raw_data)-2)/2)
+		# print "raw_data length: "+str((len(raw_data)-headercodesize)/2)
 		# print " "
+	# if not (len(raw_data)-headercodesize)/2 == count:
+		# print "*** COUNT/DATA MISMATCH *** "+ str( (len(raw_data)-headercodesize)/2-count)
 
 	scannum += 1	
 	if scannum <= 7: # drop 1st few scans while lidar spins up
 		del raw_data[:]
 		continue
-	
-	#sanity check
-	# if not (len(raw_data)-3)/2 == count:
-		# print "*** COUNT/DATA MISMATCH *** "+ str( (len(raw_data)-3)/2-count)
 
 	scan = LaserScan()
 	scan.header.stamp = current_time - rospy.Duration(cycle) 
@@ -137,19 +135,19 @@ while not rospy.is_shutdown() and ser.is_open:
 	scan.range_max = 20.0
 
 	temp = []
-	for x in range(len(raw_data)-(count*2)-4, len(raw_data)-4, 2):
+	for x in range(len(raw_data)-(count*2)-headercodesize, len(raw_data)-headercodesize, 2):
 		low = ord(raw_data[x])
 		high = ord(raw_data[x+1])
 		temp.append(((high<<8)|low) / 100.0)
 
 	# mitigate rpm sensor offset
-	tilt = 13
+	tilt = 10 # degrees
 	split = int(tilt/360.0*count)
 	scan.ranges = temp[split:]+temp[0:split]
 
 	#masking frame
 	maskwidth = 8 # half width, degrees
-	masks = [265, 295, 100, 130]
+	masks = [265, 295, 97, 126]
 	for m in masks:
 		for x in range(int(count*((m-maskwidth)/360.0)), int(count*((m+maskwidth)/360.0)) ):
 			scan.ranges[x] = 0
