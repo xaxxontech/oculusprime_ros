@@ -5,7 +5,7 @@
 -->
 
 	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" required="true" output="screen" >
-		<param name="odom_lag" value="0.0"/> 
+		<param name="odom_lag" value="0.02"/> 
 	</node>
 
 	<node pkg="tf" type="static_transform_publisher" name="base_to_xaxxon_lidar_broadcaster" 

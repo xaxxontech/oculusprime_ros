@@ -9,7 +9,7 @@ def cleanup():
 	ser.write("n\n"); # disable broadcast
 	ser.write("0\n"); # disable lidar
 	ser.close();
-
+	print("lidar disabled, shutdown");
 
 # main
 
@@ -34,6 +34,13 @@ if not line == "<id::xaxxonlidar>":
 	print("incorrect board id")
 	ser.close()
 else:	
+	ser.write("y\n") # get version
+	line = ""
+	rospy.sleep(0.1)
+	while ser.inWaiting() > 0:
+		line = ser.readline().strip()
+		print(line)
+
 	# start lidar	
 	ser.write("1\n") # enable lidar
 	ser.write("b\n") # enable broadcast
@@ -80,6 +87,7 @@ while not rospy.is_shutdown() and ser.is_open:
 	high = ord(ser.read(1))
 	count = (high<<8)|low
 
+	"""
 	# read last distance offset
 	low = ord(ser.read(1))
 	high = ord(ser.read(1))
@@ -96,40 +104,50 @@ while not rospy.is_shutdown() and ser.is_open:
 	c3 = ord(ser.read(1))
 	c4 = ord(ser.read(1))
 	cycle = ((c4<<24)|(c3<<16)|(c2<<8)|c1)/1000000.0
-
+	"""
+	
 	current_time = rospy.Time.now() # - rospy.Duration(0.035)
 	rospycycle = current_time - lastscan
+	cycle = rospycycle.to_sec()
 	lastscan = current_time
 	
-	# if not count == 0:
-		# print "cycle: "+str(cycle)
-		# print "rospycycle: "+str(rospycycle.to_sec())
-		# print "count: "+str(count)
+	rospycount = (len(raw_data)-headercodesize)/2
+	
+	# """
+	if not count == 0:
+		print "cycle: "+str(cycle)
+		print "rospycycle: "+str(rospycycle.to_sec())
+		print "count: "+str(count)
 		# print "lastDistanceOffset: "+str(lastDistanceOffset)
 		# print "firstDistanceOffset: "+str(firstDistanceOffset)
-		# print "scannum: "+str(scannum)
-		# print "interval: "+str(cycle/count)
-		# print "raw_data length: "+str((len(raw_data)-headercodesize)/2)
-		# print " "
-	# if not (len(raw_data)-headercodesize)/2 == count:
-		# print "*** COUNT/DATA MISMATCH *** "+ str( (len(raw_data)-headercodesize)/2-count)
+		print "scannum: "+str(scannum)
+		print "interval: "+str(cycle/count)
+		print "raw_data length: "+str((len(raw_data)-headercodesize)/2)
+	if not rospycount == count:
+		print "*** COUNT/DATA MISMATCH *** "+ str( rospycount-count )
+	print " "
 
+	# """
+	
+	# count = rospycount
+	
 	scannum += 1	
-	if scannum <= 7: # drop 1st few scans while lidar spins up
+	if scannum <= 10: # drop 1st few scans while lidar spins up
 		del raw_data[:]
 		continue
 
 	scan = LaserScan()
-	scan.header.stamp = current_time - rospy.Duration(cycle) 
+	scan.header.stamp = current_time - rospycycle - rospy.Duration(0.0) #rospy.Duration(cycle) 
 	scan.header.frame_id = 'laser_frame'
 
-	# scan.angle_min = 0
-	# scan.angle_max = (2 * math.pi) 
+	scan.angle_min = 0
+	scan.angle_max = (2 * math.pi) 
 
-	scan.angle_min = (firstDistanceOffset/cycle) * (2 * math.pi)
-	scan.angle_max = (2 * math.pi) - ((lastDistanceOffset/cycle)  * (2 * math.pi))
+	# scan.angle_min = (firstDistanceOffset/cycle) * (2 * math.pi)
+	# scan.angle_max = (2 * math.pi) - ((lastDistanceOffset/cycle)  * (2 * math.pi))
 
 	scan.angle_increment = 2 * math.pi / count
+	# scan.angle_increment = (scan.angle_max - scan.angle_min) / (count-1)
 	scan.time_increment =  cycle/count
 	scan.range_min = 0.05
 	scan.range_max = 20.0
