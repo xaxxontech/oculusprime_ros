@@ -311,6 +311,6 @@ private:
   ros::Publisher bboxpub_;
 };
 
-PLUGINLIB_DECLARE_CLASS(oculusprime, OculusprimeFollower, oculusprime::OculusprimeFollower, nodelet::Nodelet);
+PLUGINLIB_EXPORT_CLASS(oculusprime::OculusprimeFollower, nodelet::Nodelet)
 
 }
