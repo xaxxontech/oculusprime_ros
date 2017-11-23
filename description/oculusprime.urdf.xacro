@@ -238,15 +238,27 @@
             <type>gaussian</type>
 	          <rate>
 	            <mean>0.0</mean>
-	            <stddev>${0.0014*0.0014}</stddev> <!-- 0.25 x 0.25 (deg/s) -->
+	            <!-- 0.25 x 0.25 (deg/s): -->
+<!--
+	            <stddev>${0.0014*0.0014}</stddev> 
+-->
+	            
+	             <stddev>${0.0000*0.0000}</stddev> 
 	            <bias_mean>0.0</bias_mean>
 	            <bias_stddev>0.0</bias_stddev>
 	          </rate>
 		        <accel> <!-- not used in the plugin and real robot, hence using tutorial values -->
 			        <mean>0.0</mean>
+<!--
 			        <stddev>1.7e-2</stddev>
+-->
+					<stddev>0</stddev>
 			        <bias_mean>0.1</bias_mean>
+<!--
 			        <bias_stddev>0.001</bias_stddev>
+-->
+			        <bias_stddev>0.000</bias_stddev>
+
 		        </accel>
           </noise>
 	      </imu>

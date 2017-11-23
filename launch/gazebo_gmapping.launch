@@ -37,17 +37,17 @@
 <!--
   make the starting size small for the benefit of the Android client's memory...
 -->
-    <param name="xmin" value="-1.0"/>
-    <param name="ymin" value="-1.0"/>
-    <param name="xmax" value="1.0"/>
-    <param name="ymax" value="1.0"/>
+    <param name="xmin" value="-10.0"/>
+    <param name="ymin" value="-10.0"/>
+    <param name="xmax" value="10.0"/>
+    <param name="ymax" value="10.0"/>
 
     <param name="delta" value="0.05"/>
     <param name="llsamplerange" value="0.01"/>
     <param name="llsamplestep" value="0.01"/>
     <param name="lasamplerange" value="0.005"/>
     <param name="lasamplestep" value="0.005"/>
-	<param name="minimumScore" value="100.0"/>
+	<param name="minimumScore" value="600.0"/>
 
     <remap from="scan" to="$(arg scan_topic)"/>
   </node>
