@@ -204,16 +204,16 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 		dth = math.pi*2 + dth
 		
 	# if turning more than 120 deg, inch forward, make sure not transient obstacle (like door transfer)
-	if abs(dth) > 1.57 and not goalrotate and not initialturn and waitonaboutface < 1: # was 2.094 120 deg
-		if goalDistance() > 0.9: # skip if close to goal
-			oculusprimesocket.clearIncoming()
-			oculusprimesocket.sendString("forward 0.25")
-			oculusprimesocket.waitForReplySearch("<state> direction stop")
-			waitonaboutface += 1 # only do this once
-			rospy.sleep(1.5)
-			nextmove = rospy.get_time() + listentime
-			return
-	waitonaboutface = 0
+	# if abs(dth) > 1.57 and not goalrotate and not initialturn and waitonaboutface < 1: # was 2.094 120 deg
+		# if goalDistance() > 0.9: # skip if close to goal
+			# oculusprimesocket.clearIncoming()
+			# oculusprimesocket.sendString("forward 0.25")
+			# oculusprimesocket.waitForReplySearch("<state> direction stop")
+			# waitonaboutface += 1 # only do this once
+			# rospy.sleep(1.5)
+			# nextmove = rospy.get_time() + listentime
+			# return
+	# waitonaboutface = 0
 
 	initialturn = False
 

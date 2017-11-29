@@ -1,7 +1,7 @@
 <launch>
 
 	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" required="true" output="screen" >
-		<param name="odom_lag" value="0.02"/> 
+		<param name="odom_lag" value="0.035"/> 
 	</node>
 		
 	<node pkg="tf" type="static_transform_publisher" name="base_to_xaxxon_lidar_broadcaster" 
@@ -28,13 +28,14 @@
     <param name="srt" value="0.02"/>
     <param name="str" value="0.01"/>
     <param name="stt" value="0.02"/>
+
 <!--
     <param name="linearUpdate" value="0.5"/> 
     <param name="angularUpdate" value="0.436"/>
     <param name="temporalUpdate" value="-1.0"/>
 -->
-    
-        <param name="linearUpdate" value="0.2"/> 
+   
+    <param name="linearUpdate" value="0.2"/> 
     <param name="angularUpdate" value="0.2"/>
     <param name="temporalUpdate" value="0.5"/>
     

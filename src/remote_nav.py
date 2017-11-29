@@ -218,7 +218,7 @@ def sendScan():
 	
 	step = 8  # vga depth cam, size typically 640
 	if (size < 600):
-		step = 4; # xaxxon lidar
+		step = 3; # xaxxon lidar
 	i = 0
 	while i < size-step:
 		s += str(round(scanpoints[i],3))+","

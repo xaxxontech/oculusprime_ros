@@ -61,6 +61,7 @@ lastscan = rospy.Time.now()
 headercodesize = 4
 
 while not rospy.is_shutdown() and ser.is_open:
+	
 	# read data and dump into array, checking for header code 0xFF,0xFF,0xFF,0xFF
 	ch = ser.read(1)
 	raw_data.append(ch)
@@ -106,7 +107,7 @@ while not rospy.is_shutdown() and ser.is_open:
 	cycle = ((c4<<24)|(c3<<16)|(c2<<8)|c1)/1000000.0
 	"""
 	
-	current_time = rospy.Time.now() # - rospy.Duration(0.035)
+	current_time = rospy.Time.now() - rospy.Duration(0.015)
 	rospycycle = current_time - lastscan
 	cycle = rospycycle.to_sec()
 	lastscan = current_time
@@ -137,7 +138,7 @@ while not rospy.is_shutdown() and ser.is_open:
 		continue
 
 	scan = LaserScan()
-	scan.header.stamp = current_time - rospycycle - rospy.Duration(0.0) #rospy.Duration(cycle) 
+	scan.header.stamp = current_time - rospycycle - rospy.Duration(0.01) #rospy.Duration(cycle) 
 	scan.header.frame_id = 'laser_frame'
 
 	scan.angle_min = 0
@@ -149,6 +150,7 @@ while not rospy.is_shutdown() and ser.is_open:
 	scan.angle_increment = 2 * math.pi / count
 	# scan.angle_increment = (scan.angle_max - scan.angle_min) / (count-1)
 	scan.time_increment =  cycle/count
+	scan.scan_time = rospycycle.to_sec()
 	scan.range_min = 0.05
 	scan.range_max = 20.0
 
@@ -170,9 +172,9 @@ while not rospy.is_shutdown() and ser.is_open:
 		for x in range(int(count*((m-maskwidth)/360.0)), int(count*((m+maskwidth)/360.0)) ):
 			scan.ranges[x] = 0
 		
-
+		
 	scan_pub.publish(scan)
-
+	
 	del raw_data[:] 
 
 
