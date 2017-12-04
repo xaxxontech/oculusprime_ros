@@ -2,7 +2,11 @@
 
 import rospy, serial, math
 from sensor_msgs.msg import LaserScan
+import oculusprimesocket
+import thread
 
+
+turning = False
 
 def cleanup():
 	ser.write("p\n"); # stop lidar rotation
@@ -10,13 +14,29 @@ def cleanup():
 	ser.write("0\n"); # disable lidar
 	ser.close();
 	print("lidar disabled, shutdown");
+	
+def directionListenerThread():
+	global turning
+	oculusprimesocket.connect()
+	while oculusprimesocket.connected:
+		s = oculusprimesocket.waitForReplySearch("<state> direction")
+		direction = s.split()[2]
+		if direction == "left" or direction == "right":
+			turning = True
+		else:
+			turning = False
+
 
 # main
+
+dropscan = False
+scannum = 0
 
 rospy.init_node('xaxxon_lidar', anonymous=False)
 rospy.on_shutdown(cleanup)
 scan_pub = rospy.Publisher('scan', LaserScan, queue_size=3)
 
+thread.start_new_thread( directionListenerThread, () )
 
 # connect
 ser = serial.Serial('/dev/ttyUSB0', 115200)
@@ -56,7 +76,6 @@ else:
 	ser.reset_input_buffer()
 
 raw_data = []
-scannum = 0
 lastscan = rospy.Time.now()
 headercodesize = 4
 
@@ -65,6 +84,10 @@ while not rospy.is_shutdown() and ser.is_open:
 	# read data and dump into array, checking for header code 0xFF,0xFF,0xFF,0xFF
 	ch = ser.read(1)
 	raw_data.append(ch)
+	
+	if turning:
+		dropscan = True
+			
 	if not ord(ch) == 0xFF:
 		continue
 	else:
@@ -114,7 +137,7 @@ while not rospy.is_shutdown() and ser.is_open:
 	
 	rospycount = (len(raw_data)-headercodesize)/2
 	
-	# """
+	"""
 	if not count == 0:
 		print "cycle: "+str(cycle)
 		print "rospycycle: "+str(rospycycle.to_sec())
@@ -128,15 +151,15 @@ while not rospy.is_shutdown() and ser.is_open:
 		print "*** COUNT/DATA MISMATCH *** "+ str( rospycount-count )
 	print " "
 
-	# """
+	"""
 	
 	# count = rospycount
 	
 	scannum += 1	
-	if scannum <= 10: # drop 1st few scans while lidar spins up
+	if scannum <= 10: # drop 1st few scans while lidar spins up, and scans while turning in place
 		del raw_data[:]
 		continue
-
+	
 	scan = LaserScan()
 	scan.header.stamp = current_time - rospycycle - rospy.Duration(0.01) #rospy.Duration(cycle) 
 	scan.header.frame_id = 'laser_frame'
@@ -171,7 +194,11 @@ while not rospy.is_shutdown() and ser.is_open:
 	for m in masks:
 		for x in range(int(count*((m-maskwidth)/360.0)), int(count*((m+maskwidth)/360.0)) ):
 			scan.ranges[x] = 0
-		
+			
+	if dropscan:
+		for i in range(len(scan.ranges)):
+			scan.ranges[i] = 0
+	dropscan = False
 		
 	scan_pub.publish(scan)
 	
