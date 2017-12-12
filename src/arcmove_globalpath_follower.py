@@ -222,7 +222,7 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 			arclength = minlinear
 
 		oculusprimesocket.sendString("arcmove " + str(arclength) + " " + str(int(math.degrees(dth))) ) 
-		rospy.sleep(arclength/0.35)
+		rospy.sleep(arclength/meterspersec)
 		nextmove = rospy.get_time()
 		return
 

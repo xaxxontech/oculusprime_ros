@@ -14,10 +14,10 @@ def cleanup():
 	ser.write("0\n"); # disable lidar
 	ser.close();
 	print("lidar disabled, shutdown");
+	oculusprimesocket.sendString("state lidar false")
 	
 def directionListenerThread():
 	global turning
-	oculusprimesocket.connect()
 	while oculusprimesocket.connected:
 		s = oculusprimesocket.waitForReplySearch("<state> direction")
 		direction = s.split()[2]
@@ -36,9 +36,11 @@ rospy.init_node('xaxxon_lidar', anonymous=False)
 rospy.on_shutdown(cleanup)
 scan_pub = rospy.Publisher('scan', LaserScan, queue_size=3)
 
+oculusprimesocket.connect()
 thread.start_new_thread( directionListenerThread, () )
+oculusprimesocket.sendString("state lidar true")
 
-# connect
+# usb connect
 ser = serial.Serial('/dev/ttyUSB0', 115200)
 rospy.sleep(2)
 
