@@ -223,7 +223,12 @@ def sendScan():
 	while i < size-step:
 		s += str(round(scanpoints[i],3))+","
 		i += step
-	s += str(round(scanpoints[size-1],3))
+		
+	try:
+		s += str(round(scanpoints[size-1],3))
+	except IndexError: # rare lidar scan size error
+		oculusprimesocket.sendString("messageclients remote_nav.py IndexError")
+		
 	oculusprimesocket.sendString(s)
 
 def cleanup():
@@ -331,7 +336,7 @@ while not rospy.is_shutdown():
 				
 				#### recovery routine
 
-				oculusprimesocket.sendString("messageclients recovery rotation")
+				oculusprimesocket.sendString("messageclients navigation recovery")
 				oculusprimesocket.clearIncoming()
 				
 				# cancel goal, clear costmaps, generally reset as much as possible
@@ -348,14 +353,19 @@ while not rospy.is_shutdown():
 				oculusprimesocket.sendString("state rosgoalcancel") 
 				s = oculusprimesocket.waitForReplySearch("<state> rosgoalcancel") 
 				if re.search("rosgoalcancel true", s):
+					oculusprimesocket.sendString("user cancelled nav goal")
 					goalcancel()
 					continue
 			
 				# resend pose, full rotate
-				publishinitialpose(str(xoffst+odomx)+"_"+str(yoffst+odomy)+"_"+str(thoffst+odomth))
+				# publishinitialpose(str(xoffst+odomx)+"_"+str(yoffst+odomy)+"_"+str(thoffst+odomth))
 				# oculusprimesocket.sendString("right 360")
+				# oculusprimesocket.waitForReplySearch("<state> direction stop")
+				
+				# back up a bit
+				oculusprimesocket.sendString("backward 0.25")
 				oculusprimesocket.waitForReplySearch("<state> direction stop")
-
+				
 				# wait for cpu
 				rospy.sleep(2) 
 				oculusprimesocket.sendString("waitforcpu")
@@ -365,6 +375,7 @@ while not rospy.is_shutdown():
 				oculusprimesocket.sendString("state rosgoalcancel") 
 				s = oculusprimesocket.waitForReplySearch("<state> rosgoalcancel") 
 				if re.search("rosgoalcancel true", s):
+					oculusprimesocket.sendString("user cancelled nav goal")
 					goalcancel()
 					continue
 

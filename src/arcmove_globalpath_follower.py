@@ -203,17 +203,17 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 	elif dth < -math.pi:
 		dth = math.pi*2 + dth
 		
-	# if turning more than 120 deg, inch forward, make sure not transient obstacle (like door transfer)
-	# if abs(dth) > 1.57 and not goalrotate and not initialturn and waitonaboutface < 1: # was 2.094 120 deg
-		# if goalDistance() > 0.9: # skip if close to goal
+	# if making large turns-in-place, wait, let planner stabilize
+	if abs(dth) > 1.57 and not goalrotate and not initialturn and waitonaboutface < 1: 
+		if goalDistance() > 0.9: # skip if close to goal
 			# oculusprimesocket.clearIncoming()
 			# oculusprimesocket.sendString("forward 0.25")
 			# oculusprimesocket.waitForReplySearch("<state> direction stop")
-			# waitonaboutface += 1 # only do this once
-			# rospy.sleep(1.5)
-			# nextmove = rospy.get_time() + listentime
-			# return
-	# waitonaboutface = 0
+			waitonaboutface += 1 # only do this once
+			rospy.sleep(1.5)
+			nextmove = rospy.get_time() + listentime
+			return
+	waitonaboutface = 0
 
 	initialturn = False
 
@@ -240,12 +240,16 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 	oculusprimesocket.sendString("move stop")
 	oculusprimesocket.waitForReplySearch("<state> direction stop")
 
-	if dth > 0:
-		oculusprimesocket.sendString("left " + str(int(math.degrees(dth))) ) 
-		oculusprimesocket.waitForReplySearch("<state> direction stop")
-	elif dth < 0:
-		oculusprimesocket.sendString("right " +str(int(math.degrees(-dth))) )
-		oculusprimesocket.waitForReplySearch("<state> direction stop")
+	# if dth > 0:
+		# oculusprimesocket.sendString("left " + str(int(math.degrees(dth))) ) 
+		# oculusprimesocket.waitForReplySearch("<state> direction stop")
+	# elif dth < 0:
+		# oculusprimesocket.sendString("right " +str(int(math.degrees(-dth))) )
+		# oculusprimesocket.waitForReplySearch("<state> direction stop")
+	
+	if not dth == 0:
+		oculusprimesocket.sendString("rotate " + str(int(math.degrees(dth))) ) 
+		oculusprimesocket.waitForReplySearch("<state> odomrotating false")
 		
 	nextmove = rospy.get_time() + listentime
 	
@@ -306,15 +310,16 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 
 	oculusprimesocket.clearIncoming()
 
-	# if turning more than 120 deg, inch forward, make sure not transient obstacle (like door transfer)
+	# if making large turns-in-place, wait, let planner stabilize
 	if abs(dth) > 1.57 and not goalrotate and not initialturn and waitonaboutface < 1: 
-		if goalDistance() > 0.9:
-			oculusprimesocket.sendString("forward 0.26")
-			oculusprimesocket.waitForReplySearch("<state> direction stop")
+		if goalDistance() > 0.9: # skip if close to goal
+			# oculusprimesocket.clearIncoming()
+			# oculusprimesocket.sendString("forward 0.25")
+			# oculusprimesocket.waitForReplySearch("<state> direction stop")
 			waitonaboutface += 1 # only do this once
 			rospy.sleep(1.5)
 			nextmove = rospy.get_time() + listentime
-			return		
+			return
 	waitonaboutface = 0
 	
 	initialturn = False
@@ -323,17 +328,20 @@ def move(ox, oy, oth, tx, ty, tth, gth):
 		nextmove = rospy.get_time() + listentime
 		return
 
-	if dth > 0:
-		oculusprimesocket.sendString("left " + str(int(math.degrees(dth))) ) 
-		oculusprimesocket.waitForReplySearch("<state> direction stop")
-	elif dth < 0:
-		oculusprimesocket.sendString("right " +str(int(math.degrees(-dth))) )
-		oculusprimesocket.waitForReplySearch("<state> direction stop")
+	# if dth > 0:
+		# oculusprimesocket.sendString("left " + str(int(math.degrees(dth))) ) 
+		# oculusprimesocket.waitForReplySearch("<state> direction stop")
+	# elif dth < 0:
+		# oculusprimesocket.sendString("right " +str(int(math.degrees(-dth))) )
+		# oculusprimesocket.waitForReplySearch("<state> direction stop")
+	
+	if not dth == 0:	
+		oculusprimesocket.sendString("rotate " + str(int(math.degrees(dth))) ) 
+		oculusprimesocket.waitForReplySearch("<state> odomrotating false")
 
 	if distance > 0:
 		oculusprimesocket.sendString("forward "+str(distance))
 		rospy.sleep(distance/meterspersec)
-		# initialturn = False
 	
 	nextmove = rospy.get_time() + listentime
 
@@ -378,6 +386,8 @@ if re.search("true", s):
 	oculusprimesocket.sendString("state rosarcmove true") 
 else:
 	oculusprimesocket.sendString("state rosarcmove false") 
+
+oculusprimesocket.sendString("state rotatetolerance 5")   # set rotate target angle tolerance (default is 2, unnecessarily tight)
 
 
 while not rospy.is_shutdown():
