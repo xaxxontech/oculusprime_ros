@@ -142,6 +142,7 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 	global initialturn, waitonaboutface, nextmove	
 	
 	currentpathid = pathid
+	highdpm = False
 	
 	# global path targets
 	gpdx = gpx - ox
@@ -190,6 +191,7 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 		if not arclength == 0:
 			if abs(dth/arclength) > DPMTHRESHOLD:
 				arclength = 0
+				highdpm = True
 				print ("high dpm")
 
 	elif goalpose:  # final goal rotate move
@@ -264,8 +266,11 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 	if not dth == 0:
 		oculusprimesocket.sendString("rotate " + str(int(math.degrees(dth))) ) 
 		oculusprimesocket.waitForReplySearch("<state> odomrotating false")
-		
-	nextmove = rospy.get_time() + LISTENTIME
+
+	if highdpm:	
+		nextmove = rospy.get_time()
+	else:
+		nextmove = rospy.get_time() + LISTENTIME
 	
 
 def move(ox, oy, oth, tx, ty, tth, gth):

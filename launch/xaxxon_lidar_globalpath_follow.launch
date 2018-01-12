@@ -2,7 +2,7 @@
 	
 	<param name="robot_description" textfile="$(find oculusprime)/description/oculusprime.urdf" />
 
-	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" required="true" output="screen" >
+	<node pkg="oculusprime" type="odom_tf_publishrate.py" name="odom_tf_publishrate" required="true" output="screen" >
 		<param name="odom_lag" value="0.035"/> 
 	</node>
 
@@ -14,11 +14,6 @@
 	
 	<node pkg="oculusprime" type="xaxxon_lidar.py" name="xaxxon_lidar"
 	 required="true" /> 
-	
-	<arg name="map" default="map.yaml" />
-	<node name="map_server" pkg="map_server" type="map_server" args="$(find oculusprime)/maps/$(arg map)"
-		required="true" />
-		
 
 	<node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
 		<rosparam file="$(find oculusprime)/params/xaxxon_lidar_costmap_common_params.yaml" command="load" ns="global_costmap" />
@@ -31,6 +26,10 @@
 		<rosparam file="$(find oculusprime)/params/xaxxon_lidar_move_base_params.yaml" command="load" />
 	</node>
 	
-		<include file="$(find oculusprime)/launch/amcl.launch" />
-		
+	<arg name="map" default="map.yaml" />
+	<node name="map_server" pkg="map_server" type="map_server" args="$(find oculusprime)/maps/$(arg map)"
+		required="true" />
+
+	<include file="$(find oculusprime)/launch/amcl.launch" />
+
 </launch>

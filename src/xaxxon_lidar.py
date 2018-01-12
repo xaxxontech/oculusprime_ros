@@ -132,7 +132,7 @@ while not rospy.is_shutdown() and ser.is_open:
 	cycle = ((c4<<24)|(c3<<16)|(c2<<8)|c1)/1000000.0
 	"""
 	
-	current_time = rospy.Time.now() - rospy.Duration(0.015)
+	current_time = rospy.Time.now() - rospy.Duration(0.0) #0.015
 	rospycycle = current_time - lastscan
 	cycle = rospycycle.to_sec()
 	lastscan = current_time
