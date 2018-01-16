@@ -206,4 +206,8 @@ while not rospy.is_shutdown() and ser.is_open:
 	
 	del raw_data[:] 
 
+	if scannum % 5 == 0:
+		msg = "scan #: "+str(scannum)
+		# print(msg)
+		rospy.loginfo(msg)
 
