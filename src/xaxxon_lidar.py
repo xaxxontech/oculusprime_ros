@@ -41,7 +41,7 @@ thread.start_new_thread( directionListenerThread, () )
 oculusprimesocket.sendString("state lidar true")
 
 # usb connect
-ser = serial.Serial('/dev/ttyUSB0', 115200)
+ser = serial.Serial('/dev/ttyUSB0', 115200,timeout=10)
 rospy.sleep(2)
 
 ser.write("x\n") # check board id
@@ -66,7 +66,6 @@ else:
 	# start lidar	
 	ser.write("1\n") # enable lidar
 	ser.write("b\n") # enable broadcast
-	
 	ser.write("g\n") # start rotation, full speed
 	
 	""" slower speed option: """
@@ -85,6 +84,11 @@ while not rospy.is_shutdown() and ser.is_open:
 	
 	# read data and dump into array, checking for header code 0xFF,0xFF,0xFF,0xFF
 	ch = ser.read(1)
+	
+	if len(ch) == 0:
+		rospy.logerr("no response from xaxxonlidar device")
+		break
+	
 	raw_data.append(ch)
 	
 	if turning:
@@ -107,6 +111,8 @@ while not rospy.is_shutdown() and ser.is_open:
 				raw_data.append(ch)
 				if not ord(ch) == 0xFF:
 					continue
+
+	ser.write("h\n") # send host hearbeat (every <10 sec minimum)
 
 	# read count		
 	low = ord(ser.read(1))
@@ -158,7 +164,7 @@ while not rospy.is_shutdown() and ser.is_open:
 	# count = rospycount
 	
 	scannum += 1	
-	if scannum <= 10: # drop 1st few scans while lidar spins up, and scans while turning in place
+	if scannum <= 10: # drop 1st few scans while lidar spins up
 		del raw_data[:]
 		continue
 	
@@ -197,7 +203,7 @@ while not rospy.is_shutdown() and ser.is_open:
 		for x in range(int(count*((m-maskwidth)/360.0)), int(count*((m+maskwidth)/360.0)) ):
 			scan.ranges[x] = 0
 			
-	if dropscan:
+	if dropscan: 	# blank scans when turning
 		for i in range(len(scan.ranges)):
 			scan.ranges[i] = 0
 	dropscan = False
@@ -206,8 +212,7 @@ while not rospy.is_shutdown() and ser.is_open:
 	
 	del raw_data[:] 
 
-	if scannum % 5 == 0:
-		msg = "scan #: "+str(scannum)
-		# print(msg)
-		rospy.loginfo(msg)
+	# if scannum % 5 == 0:
+		# msg = "scan #: "+str(scannum)
+		# rospy.loginfo(msg)
 
