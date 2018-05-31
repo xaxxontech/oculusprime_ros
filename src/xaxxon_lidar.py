@@ -88,9 +88,9 @@ while ser.inWaiting() > 0:
 	print(line)
 
 """ alternate speed option: """
-ser.write("r")
-ser.write(chr(180)) # 255 max - also max rated rpm is 300, 250 safer
-ser.write("\n")
+# ser.write("r")
+# ser.write(chr(120)) # 255 max - also max rated rpm is 300, 250 safer
+# ser.write("\n")
 
 # start lidar	
 ser.write("g\n") # start rotation, full speed
@@ -219,16 +219,19 @@ while not rospy.is_shutdown() and ser.is_open:
 	for x in range(len(raw_data)-(count*2)-headercodesize, len(raw_data)-headercodesize, 2):
 		low = ord(raw_data[x])
 		high = ord(raw_data[x+1])
-		temp.append(((high<<8)|low) / 100.0)
+		value = ((high<<8)|low) / 100.0
+		if value < 0.4:
+			value = 0
+		temp.append(value)
 
-	# mitigate rpm sensor offset
+	# comp rpm photo sensor offset
 	tilt = 280 # degrees
 	split = int(tilt/360.0*count)
 	scan.ranges = temp[split:]+temp[0:split]
 
 	# #masking frame
 	maskwidth = 6 # half width, degrees
-	masks = [88,133, 270, 315]
+	masks = [92,133, 270, 315]
 	for m in masks:
 		for x in range(int(count*((m-maskwidth)/360.0)), int(count*((m+maskwidth)/360.0)) ):
 			scan.ranges[x] = 0
