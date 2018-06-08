@@ -12,7 +12,10 @@
 	<param name="/camera/driver/data_skip" value="$(arg skipframes)" />
 	<param name="/camera/driver/use_device_time" value="$(arg use_device_time)" />
 
+<!--
 	<include file="$(find oculusprime)/launch/openni2.launch" >
+-->
+	<include file="$(find oculusprime)/launch/astra.launch" >
 		<arg name="publish_tf" value="$(arg publish_tf)"/>
 		    <arg name="rgb_processing" value="false" />
 			<arg name="depth_registration" value="false" /> 
