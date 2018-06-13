@@ -88,9 +88,9 @@ while ser.inWaiting() > 0:
 	print(line)
 
 """ alternate speed option: """
-# ser.write("r")
-# ser.write(chr(120)) # 255 max - also max rated rpm is 300, 250 safer
-# ser.write("\n")
+ser.write("r")
+ser.write(chr(120)) # 255 max - also max rated rpm is 300, 250 safer
+ser.write("\n")
 
 # start lidar	
 ser.write("g\n") # start rotation, full speed

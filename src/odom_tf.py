@@ -82,7 +82,7 @@ def cleanup():
 rospy.init_node('odom_tf', anonymous=False)
 before = rospy.Time.now()
 br = tf.TransformBroadcaster()
-odom_pub = rospy.Publisher('odom', Odometry, queue_size=3)
+odom_pub = rospy.Publisher('odom', Odometry, queue_size=10)
 rospy.on_shutdown(cleanup)
 oculusprimesocket.connect()
 oculusprimesocket.sendString("log odom_tf.py connected")  
