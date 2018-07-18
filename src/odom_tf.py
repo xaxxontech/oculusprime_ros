@@ -17,12 +17,13 @@ import oculusprimesocket
 pos = [0.0, 0.0, 0.0]
 before = 0
 now = 0
-lag = 0.035 # 0.075 = xtion (using device time)  0.035 = astra (using system time)
+default_lag = 0.035 # 0.075 = xtion (using device time)  0.035 = astra (using system time)
 
 
 def broadcast(s):
 	global before, pos, now
-	now = rospy.Time.now() - rospy.Duration(lag) # 0.05 subtract socket + serial + fifo read lag 0.075 = tested with rviz odom only 
+	now = rospy.Time.now() - rospy.Duration(rospy.get_param('~odom_lag', default_lag))
+				# 0.05 subtract socket + serial + fifo read lag 0.075 = tested with rviz odom only 
 	dt = (now-before).to_sec()
 	before = now
 
@@ -55,6 +56,12 @@ def broadcast(s):
 	odom.pose.pose.orientation.y = odom_quat[1]
 	odom.pose.pose.orientation.z = odom_quat[2]
 	odom.pose.pose.orientation.w = odom_quat[3]
+	odom.pose.covariance=  [0.000001, 0, 0, 0, 0, 0, 
+							0, 0.000001, 0, 0, 0, 0,    
+							0, 0, 0.000001, 0, 0, 0,   
+							0, 0, 0, 0.000001, 0, 0, 
+							0, 0, 0, 0, 0.000001, 0, 
+							0, 0, 0, 0, 0, 0.000001] 
 
 	#set the velocity
 	odom.child_frame_id = "base_link"

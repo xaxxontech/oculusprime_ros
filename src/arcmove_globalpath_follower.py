@@ -240,7 +240,9 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 	oculusprimesocket.clearIncoming()
 
 	oculusprimesocket.sendString("move stop")
-	oculusprimesocket.waitForReplySearch("<state> direction stop")
+	# below waits forever with new java stopbetweenmoves rotate code!! state never arrives
+	# oculusprimesocket.waitForReplySearch("<state> direction stop")
+	rospy.sleep(0.5)
 
 	if dth > 0:
 		oculusprimesocket.sendString("left " + str(int(math.degrees(dth))) ) 
