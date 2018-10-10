@@ -1,17 +1,25 @@
 <launch>
 
-<!--
-	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" required="true" />
--->
+	<param name="robot_description" textfile="$(find oculusprime)/description/oculusprime.urdf" />
+
 
 	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" required="true" output="screen" >
 		<param name="odom_lag" value="0.035"/> 
 	</node>
 
+<!--
 	<node pkg="tf" type="static_transform_publisher" name="base_to_xaxxon_lidar_broadcaster" 
 	args="-0.063 0.0 0.359 0 0 0 /base_link /laser_frame 100" /> 
+-->
+	
+	<node pkg="tf" type="static_transform_publisher" name="base_to_xaxxon_lidar_broadcaster" 
+	args="-0.0556 0.0 0.3624 0 0 0 base_link laser_frame 100" /> 
 
 	<node pkg="oculusprime" type="xaxxon_lidar.py" name="xaxxon_lidar" output="screen"
 	 required="true" /> 
+	 
+	<include file="$(find hololensdot)/launch/oculusprime_two_astra.launch" >
+		<arg name="data_skip" value="4" />
+	</include>
 		
 </launch>

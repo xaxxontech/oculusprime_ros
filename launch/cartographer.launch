@@ -1,0 +1,23 @@
+<launch>
+	
+	<node pkg="oculusprime" type="odom_tf.py" name="odom_tf" required="true" output="screen" >
+		<param name="odom_lag" value="0.035"/> 
+	</node>
+	
+	<node pkg="tf" type="static_transform_publisher" name="base_to_xaxxon_lidar_broadcaster" 
+		args="-0.0556 0.0 0.3624 0 0 0 base_link laser_frame 100" /> 
+	
+	<node pkg="oculusprime" type="xaxxon_lidar.py" name="xaxxon_lidar" output="screen"
+	 required="true" /> 
+	
+	<node name="cartographer_node" pkg="cartographer_ros"
+		  type="cartographer_node" args="
+			  -configuration_directory $(find oculusprime)/config
+			  -configuration_basename 2d_testing.lua"
+		  output="screen">
+	</node>
+
+	<node name="cartographer_occupancy_grid_node" pkg="cartographer_ros"
+	  type="cartographer_occupancy_grid_node" args="-resolution 0.05" />
+	  
+</launch>

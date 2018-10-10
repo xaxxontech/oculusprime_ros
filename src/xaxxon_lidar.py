@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import rospy, serial, math
+import rospy, serial, math, os, sys
 from sensor_msgs.msg import LaserScan
 import oculusprimesocket
 import thread
@@ -8,12 +8,16 @@ import thread
 
 turning = False
 READINTERVAL = 0.0014
+MINIMUMRANGE = 0.5
+RPM = 180
+SKIPLAST = int(60.0/RPM/READINTERVAL * 0.014)
 
 def cleanup():
 	ser.write("p\n") # stop lidar rotation
 	ser.write("n\n") # disable broadcast
 	ser.write("0\n") # disable lidar
 	ser.close()
+	removelockfiles()
 	rospy.sleep(3)
 	print("lidar disabled, shutdown");
 	oculusprimesocket.sendString("state lidar false")
@@ -28,20 +32,76 @@ def directionListenerThread():
 		else:
 			turning = False
 			
-def checkBoardId():
+def removelockfiles():
+	os.system("rm -f /tmp/dev_ttyUSB*")
+
+def checkBoardId(idstring, ser):
+	ser.reset_input_buffer()
 	ser.write("x\n") # check board id
 	line = ""
 	rospy.sleep(0.1)
 	while ser.inWaiting() > 0:
 		line = ser.readline().strip()
-		print(line)
 
-	if not line == "<id::xaxxonlidar>":
-		rospy.signal_shutdown("incorrect board id")
-		print("incorrect board id")
+	if not line == idstring:
+		rospy.loginfo(rospy.get_name()+" incorrect board id: "+line)
 		return False
 	
+	rospy.loginfo(rospy.get_name()+" connected to: "+line)
 	return True
+	
+def usbdiscover(idstring):
+	global lockfilepath
+	
+	portnum = 0;
+
+	while portnum <= 6 and not rospy.is_shutdown():
+		port = '/dev/ttyUSB'+str(portnum)
+
+		rospy.loginfo(rospy.get_name()+" trying port: "+port)
+		
+		lockfilepath = "/tmp/dev_ttyUSB"+str(portnum)
+		tries = 0
+		while tries < 5 and not rospy.is_shutdown():
+			if os.path.exists(lockfilepath):
+				rospy.loginfo(rospy.get_name()+" port busy: "+port)
+				rospy.sleep(1)
+				tries += 1
+			else:
+				break 
+
+		if tries == 5:
+			rospy.loginfo(rospy.get_name()+" giving up on port: "+port)
+			portnum += 1
+			continue
+			
+		open(lockfilepath, 'w') # creates lockfile
+		
+		try:
+			ser = serial.Serial(port, 115200, timeout=5)
+		except serial.SerialException: 
+			rospy.loginfo(rospy.get_name()+" port exception: "+port)
+			os.remove(lockfilepath)
+			portnum += 1
+			rospy.sleep(1)
+			continue
+			
+		rospy.sleep(2.5)
+
+		if checkBoardId(idstring, ser):
+			break
+			
+		ser.close()
+		if os.path.exists(lockfilepath):
+			os.remove(lockfilepath)
+		rospy.sleep(1)
+		portnum += 1
+		
+	if not ser.is_open:
+		rospy.logerr(idstring+" device not found")
+		sys.exit(0)
+	
+	return ser
 
 # main
 
@@ -56,29 +116,8 @@ oculusprimesocket.connect()
 thread.start_new_thread( directionListenerThread, () )
 oculusprimesocket.sendString("state lidar true")
 
-# usb connect
-portnum = 0;
-
-while portnum <= 6:
-	port = '/dev/ttyUSB'+str(portnum)
-	print("trying port: "+port)
-	
-	try: 
-		ser = serial.Serial(port, 115200,timeout=10)
-	except serial.SerialException: 
-		portnum += 1
-		rospy.sleep(1)
-		continue
-		
-	rospy.sleep(2)
-
-	if checkBoardId():
-		break
-		
-	ser.close()
-	rospy.sleep(1)
-	portnum += 1
-
+# removelockfiles()
+ser = usbdiscover("<id::xaxxonlidar>")
 
 ser.write("y\n") # get version
 line = ""
@@ -87,10 +126,14 @@ while ser.inWaiting() > 0:
 	line = ser.readline().strip()
 	print(line)
 
-""" alternate speed option: """
-ser.write("r")
-ser.write(chr(120)) # 255 max - also max rated rpm is 300, 250 safer
-ser.write("\n")
+""" set speed (180 default if not set, 255 max) """
+# ser.write("r")
+# ser.write(chr(RPM)) # 255 max - also max rated rpm is 300, 250 safer     180 default
+# ser.write("\n")
+ser.write("r"+chr(RPM)+"\n") 
+
+
+# ser.write("3\n") # disable host heartbeat check
 
 # start lidar	
 ser.write("g\n") # start rotation, full speed
@@ -160,17 +203,23 @@ while not rospy.is_shutdown() and ser.is_open:
 	# low = ord(ser.read(1))
 	# high = ord(ser.read(1))
 	# lastDistanceOffset = ((high<<8)|low)/1000000.0
-		
-	if current_time == 0:
-		current_time = rospy.Time.now() # - rospy.Duration(0.0) #0.015
-	else:
-		current_time += rospy.Duration(cycle)
+	
+	""" device time """
+	# if current_time == 0:
+		# current_time = rospy.Time.now() # - rospy.Duration(0.0) #0.015
+	# else:
+		# current_time += rospy.Duration(cycle)
+	# rospycycle = current_time - lastscan
+	# lastscan = current_time
+
+	""" host time """
+	current_time = rospy.Time.now() # - rospy.Duration(0.0) #0.015
 	rospycycle = current_time - lastscan
 	# cycle = rospycycle.to_sec()
-	lastscan = current_time
+	lastscan = current_time	
+
 	
 	rospycount = (len(raw_data)-headercodesize)/2
-	
 	
 	if not count == 0:
 		print "cycle: "+str(cycle)
@@ -184,7 +233,10 @@ while not rospy.is_shutdown() and ser.is_open:
 	if not rospycount == count:
 		print "*** COUNT/DATA MISMATCH *** "+ str( rospycount-count )
 	print " "
-
+	
+	if count < 100:   #TODO: TESTING
+		print("count < 200")
+		sys.exit(0)
 	
 	scannum += 1	
 	if scannum <= 5: # drop 1st few scans while lidar spins up
@@ -204,7 +256,7 @@ while not rospy.is_shutdown() and ser.is_open:
 	# scan.angle_increment = READINTERVAL / cycle * 2 * math.pi
 	# scan.angle_max = scan.angle_increment * (count-1)
 	
-	scan.angle_max = (cycle - READINTERVAL*3)/cycle * 2 * math.pi
+	scan.angle_max = (cycle - READINTERVAL*SKIPLAST)/cycle * 2 * math.pi
 	# scan.angle_max = (cycle - lastDistanceOffset)/cycle * 2 * math.pi
 	scan.angle_increment = scan.angle_max / (count-1)
 
@@ -215,23 +267,25 @@ while not rospy.is_shutdown() and ser.is_open:
 	scan.range_min = 0.05
 	scan.range_max = 20.0
 
-	temp = []
+	# temp = []
+	scan.ranges=[]
 	for x in range(len(raw_data)-(count*2)-headercodesize, len(raw_data)-headercodesize, 2):
 		low = ord(raw_data[x])
 		high = ord(raw_data[x+1])
 		value = ((high<<8)|low) / 100.0
-		if value < 0.4:
+		if value < MINIMUMRANGE:
 			value = 0
-		temp.append(value)
+		# temp.append(value)
+		scan.ranges.append(value)
 
-	# comp rpm photo sensor offset
-	tilt = 280 # degrees
-	split = int(tilt/360.0*count)
-	scan.ranges = temp[split:]+temp[0:split]
+	""" comp rpm photo sensor offset """
+	# tilt = 283 # degrees  (was 280)
+	# split = int(tilt/360.0*count)
+	# scan.ranges = temp[split:]+temp[0:split]
 
-	# #masking frame
-	maskwidth = 6 # half width, degrees
-	masks = [92,133, 270, 315]
+	""" masking frame """
+	maskwidth = 8 # half width, degrees
+	masks = [90,133, 270, 315]
 	for m in masks:
 		for x in range(int(count*((m-maskwidth)/360.0)), int(count*((m+maskwidth)/360.0)) ):
 			scan.ranges[x] = 0
