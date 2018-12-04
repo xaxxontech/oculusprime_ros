@@ -251,10 +251,11 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 	elif dth < 0 and dth > -minturn:
 		dth = -minturn
 	
-	oculusprimesocket.clearIncoming()
+	# oculusprimesocket.clearIncoming()
 
 	oculusprimesocket.sendString("move stop")
-	oculusprimesocket.waitForReplySearch("<state> direction stop")
+	# oculusprimesocket.waitForReplySearch("<state> direction stop")
+	rospy.sleep(0.5)
 
 	# if dth > 0:
 		# oculusprimesocket.sendString("left " + str(int(math.degrees(dth))) ) 
@@ -262,6 +263,8 @@ def arcmove(ox, oy, oth, gpx, gpy, gpth, gth, lpx, lpy, lpth):
 	# elif dth < 0:
 		# oculusprimesocket.sendString("right " +str(int(math.degrees(-dth))) )
 		# oculusprimesocket.waitForReplySearch("<state> direction stop")
+		
+	oculusprimesocket.clearIncoming()
 	
 	if not dth == 0:
 		oculusprimesocket.sendString("rotate " + str(int(math.degrees(dth))) ) 

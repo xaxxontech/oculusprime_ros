@@ -221,6 +221,7 @@ while not rospy.is_shutdown() and ser.is_open:
 	
 	rospycount = (len(raw_data)-headercodesize)/2
 	
+	"""
 	if not count == 0:
 		print "cycle: "+str(cycle)
 		## print "rospycycle: "+str(rospycycle.to_sec())
@@ -233,10 +234,11 @@ while not rospy.is_shutdown() and ser.is_open:
 	if not rospycount == count:
 		print "*** COUNT/DATA MISMATCH *** "+ str( rospycount-count )
 	print " "
+	"""
 	
-	if count < 100:   #TODO: TESTING
-		print("count < 200")
-		sys.exit(0)
+	# if count < 100:   #TODO: TESTING
+		# print("count < 200")
+		# sys.exit(0)
 	
 	scannum += 1	
 	if scannum <= 5: # drop 1st few scans while lidar spins up
