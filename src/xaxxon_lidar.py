@@ -9,13 +9,16 @@ import thread
 turning = False
 READINTERVAL = 0.0014
 MINIMUMRANGE = 0.5
-RPM = 180
+RPM = 180 # default 180
 SKIPLAST = int(60.0/RPM/READINTERVAL * 0.014)
+debugoutput = True
+VERSION = "1.0"
 
 def cleanup():
-	ser.write("p\n") # stop lidar rotation
-	ser.write("n\n") # disable broadcast
-	ser.write("0\n") # disable lidar
+	#  ser.write("p\n") # stop lidar rotation
+	#  ser.write("n\n") # disable broadcast
+	#  ser.write("0\n") # disable lidar
+	ser.write("f\n") # stop lidar
 	ser.close()
 	removelockfiles()
 	rospy.sleep(3)
@@ -110,6 +113,7 @@ scannum = 0
 
 rospy.init_node('xaxxon_lidar', anonymous=False)
 rospy.on_shutdown(cleanup)
+rospy.loginfo("xaxxon_lidar.py version: "+VERSION)
 scan_pub = rospy.Publisher('scan', LaserScan, queue_size=3)
 
 oculusprimesocket.connect()
@@ -126,19 +130,18 @@ while ser.inWaiting() > 0:
 	line = ser.readline().strip()
 	print(line)
 
-""" set speed (180 default if not set, 255 max) """
-# ser.write("r")
-# ser.write(chr(RPM)) # 255 max - also max rated rpm is 300, 250 safer     180 default
-# ser.write("\n")
+""" set speed (180 firmware default if not set here, 255 max) """
 ser.write("r"+chr(RPM)+"\n") 
 
-
-# ser.write("3\n") # disable host heartbeat check
+# ser.write("3\n") # disable heartbeat check
 
 # start lidar	
-ser.write("g\n") # start rotation, full speed
-ser.write("1\n") # enable lidar
-ser.write("b\n") # enable broadcast
+#  ser.write("g\n") # start rotation, full speed
+#  ser.write("1\n") # enable lidar
+#  ser.write("b\n") # enable broadcast
+
+ser.write("a\n") # start lidar
+
 
 # clear buffer
 ser.reset_input_buffer()
@@ -221,24 +224,23 @@ while not rospy.is_shutdown() and ser.is_open:
 	
 	rospycount = (len(raw_data)-headercodesize)/2
 	
-	"""
-	if not count == 0:
-		print "cycle: "+str(cycle)
-		## print "rospycycle: "+str(rospycycle.to_sec())
-		print "count: "+str(count)
-		# print "lastDistanceOffset: "+str(lastDistanceOffset)
-		## print "firstDistanceOffset: "+str(firstDistanceOffset)
-		print "scannum: "+str(scannum)
-		# print "interval: "+str(cycle/count)
-		## print "raw_data length: "+str((len(raw_data)-headercodesize)/2)
-	if not rospycount == count:
-		print "*** COUNT/DATA MISMATCH *** "+ str( rospycount-count )
-	print " "
-	"""
+	# startup debug info
+	if debugoutput:
+		if not count == 0:
+			print "cycle: "+str(cycle)
+			## print "rospycycle: "+str(rospycycle.to_sec())
+			print "count: "+str(count)
+			# print "lastDistanceOffset: "+str(lastDistanceOffset)
+			## print "firstDistanceOffset: "+str(firstDistanceOffset)
+			print "scannum: "+str(scannum)
+			# print "interval: "+str(cycle/count)
+			## print "raw_data length: "+str((len(raw_data)-headercodesize)/2)
+		if not rospycount == count:
+			print "*** COUNT/DATA MISMATCH *** "+ str( rospycount-count )
+		print " "
 	
-	# if count < 100:   #TODO: TESTING
-		# print("count < 200")
-		# sys.exit(0)
+		if scannum > 20:
+			debugoutput = False
 	
 	scannum += 1	
 	if scannum <= 5: # drop 1st few scans while lidar spins up
@@ -286,12 +288,21 @@ while not rospy.is_shutdown() and ser.is_open:
 	# scan.ranges = temp[split:]+temp[0:split]
 
 	""" masking frame """
-	maskwidth = 8 # half width, degrees
-	masks = [90,133, 270, 315]
-	for m in masks:
-		for x in range(int(count*((m-maskwidth)/360.0)), int(count*((m+maskwidth)/360.0)) ):
+	# maskwidth = 8 # half width, degrees
+	# masks = [90,133, 270, 315] # proto 2 
+	# for m in masks:
+		# for x in range(int(count*((m-maskwidth)/360.0)), int(count*((m+maskwidth)/360.0)) ):
+			# scan.ranges[x] = 0
+	
+	masks = [43, 54,    78, 104,    130, 147,   263, 286,    312, 329]	   #223, 134,   	
+	#  masks = [90, 145, 275, 330]
+	i = 0
+	while i < len(masks):
+		for x in range(int(count*((masks[i])/360.0)), int(count*((masks[i+1])/360.0)) ):
 			scan.ranges[x] = 0
-			
+		i += 2
+		
+				
 	if dropscan: 	# blank scans when turning
 		for i in range(len(scan.ranges)):
 			scan.ranges[i] = 0
