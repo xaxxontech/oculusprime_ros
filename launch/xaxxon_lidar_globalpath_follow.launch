@@ -6,13 +6,17 @@
 		<param name="odom_lag" value="0.035"/> 
 	</node>
 
+<!--
 	<node pkg="tf" type="static_transform_publisher" name="base_to_xaxxon_lidar_broadcaster" 
 	args="-0.063 0.0 0.359 0 0 0 /base_link /laser_frame 100" /> 
 
+	<node pkg="oculusprime" type="xaxxon_lidar.py" name="xaxxon_lidar" required="true" output="screen"/> 
+-->
+
+	<include file="$(find oculusprime)/launch/xaxxonlidarastra_merge_test.launch" />
+
 	<node pkg="oculusprime" type="arcmove_globalpath_follower.py" name="arcmove_globalpath_follower" output="screen"
 		required="true" /> 
-	
-	<node pkg="oculusprime" type="xaxxon_lidar.py" name="xaxxon_lidar" required="true" output="screen"/> 
 
 	<node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
 		<rosparam file="$(find oculusprime)/params/xaxxon_lidar_costmap_common_params.yaml" command="load" ns="global_costmap" />

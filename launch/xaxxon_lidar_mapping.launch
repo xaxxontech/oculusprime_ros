@@ -9,6 +9,12 @@
 
 	<node pkg="oculusprime" type="xaxxon_lidar.py" name="xaxxon_lidar" output="screen"
 	 required="true" /> 
+	 
+<!--
+	<include file="$(find oculusprime)/launch/xaxxonlidarastra_merge_test.launch" />
+-->
+
+
 
   <arg name="scan_topic" default="scan" />
   <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">

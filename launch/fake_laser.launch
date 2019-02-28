@@ -12,30 +12,26 @@
 	<param name="/camera/driver/data_skip" value="$(arg skipframes)" />
 	<param name="/camera/driver/use_device_time" value="$(arg use_device_time)" />
 
-<!--
-	<include file="$(find oculusprime)/launch/openni2.launch" >
--->
-	<include file="$(find oculusprime)/launch/astra.launch" >
+	<include file="$(find astra_launch)/launch/astrapro.launch" >
 		<arg name="publish_tf" value="$(arg publish_tf)"/>
-		    <arg name="rgb_processing" value="false" />
-			<arg name="depth_registration" value="false" /> 
-			<arg name="depth_processing" value="true" />
-			
+		<arg name="rgb_processing" value="false" />
+		<arg name="depth_registration" value="false" /> 
+		<arg name="depth_processing" value="true" />
 	</include>
-
-
 
   <!-- Run the depthimage_to_laserscan node -->
 
 	<arg name="scan_topic" default="scan"/>
 	<arg name = "fpscan_enable" default="false"/>
 	<arg name = "horiz_angle_offset" default="0"/>
+	<arg name = "range_max" default="10.0"/>
     <node pkg="nodelet" type="nodelet" name="depthimage_to_laserscan" args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet $(arg camera)/$(arg camera)_nodelet_manager">
       <!-- Pixel rows to use to generate the laserscan. For each column, the scan will
            return the minimum value for those pixels centered vertically in the image. -->
       <param name="scan_height" value="5"/> <!-- was 10 --> 
       <param name="output_frame_id" value="$(arg camera)_depth_frame"/>
       <param name="range_min" value="0.45"/>
+      <param name="range_max" value="$(arg range_max)"/>
       <param name="floorplane_scan_enable" value="$(arg fpscan_enable)" />
       <param name="horiz_angle_offset" value="$(arg horiz_angle_offset)" />
       <remap from="image" to="$(arg camera)/$(arg depth)/image_raw"/>

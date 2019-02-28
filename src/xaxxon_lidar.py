@@ -114,7 +114,7 @@ scannum = 0
 rospy.init_node('xaxxon_lidar', anonymous=False)
 rospy.on_shutdown(cleanup)
 rospy.loginfo("xaxxon_lidar.py version: "+VERSION)
-scan_pub = rospy.Publisher('scan', LaserScan, queue_size=3)
+scan_pub = rospy.Publisher(rospy.get_param('~scan_topic', 'scan'), LaserScan, queue_size=3)
 
 oculusprimesocket.connect()
 thread.start_new_thread( directionListenerThread, () )
@@ -272,15 +272,17 @@ while not rospy.is_shutdown() and ser.is_open:
 	scan.range_max = 20.0
 
 	# temp = []
+	zeroes = 0
 	scan.ranges=[]
 	for x in range(len(raw_data)-(count*2)-headercodesize, len(raw_data)-headercodesize, 2):
 		low = ord(raw_data[x])
 		high = ord(raw_data[x+1])
 		value = ((high<<8)|low) / 100.0
+		#  print value
 		if value < MINIMUMRANGE:
 			value = 0
-		# temp.append(value)
 		scan.ranges.append(value)
+		
 
 	""" comp rpm photo sensor offset """
 	# tilt = 283 # degrees  (was 280)
@@ -294,14 +296,35 @@ while not rospy.is_shutdown() and ser.is_open:
 		# for x in range(int(count*((m-maskwidth)/360.0)), int(count*((m+maskwidth)/360.0)) ):
 			# scan.ranges[x] = 0
 	
-	masks = [43, 54,    78, 104,    130, 147,   263, 286,    312, 329]	   #223, 134,   	
 	#  masks = [90, 145, 275, 330]
+	#masks = [43, 54,    78, 104,    130, 147,   263, 286,    312, 329]	   #223, 134,   	
+	masks = [35,50,78,102,130,144,215,230,258,282,310,324]
+	#  masks = []
+	
 	i = 0
+	offst = 2 # slight mask rotation comp
 	while i < len(masks):
-		for x in range(int(count*((masks[i])/360.0)), int(count*((masks[i+1])/360.0)) ):
+		for x in range(int(count*((masks[i]+offst)/360.0)), int(count*((masks[i+1]+offst)/360.0)) ):
 			scan.ranges[x] = 0
 		i += 2
 		
+	#  i = 0	
+	#  zeroed = 0
+	#  spread = 2
+	#  while i < len(scan.ranges):
+		#  if scan.ranges[i] == 0.04: # blank point found
+			#  for n in range(spread*2+1):
+				#  m = i+(n-spread)
+				#  if m >=0 and m<len(scan.ranges):
+					#  scan.ranges[m] = 0
+					#  zeroed += 1
+			#  i += spread
+		#  elif scan.ranges[i] < MINIMUMRANGE:
+			#  scan.ranges[i] = 0
+		#  i += 1
+	
+	#  print zeroed				 
+	
 				
 	if dropscan: 	# blank scans when turning
 		for i in range(len(scan.ranges)):
