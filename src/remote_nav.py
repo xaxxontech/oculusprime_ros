@@ -11,6 +11,7 @@ from sensor_msgs.msg import LaserScan
 import actionlib
 from actionlib_msgs.msg import *
 from std_srvs.srv import Empty
+import dynamic_reconfigure.client
 
 """
 sending info:
@@ -47,6 +48,8 @@ recoveryrotate = False
 goal = None
 turnspeed = 100
 secondspertwopi = 4.2 # calibration, automate? (do in java, faster)
+# docked = False
+lidarclient = dynamic_reconfigure.client.Client("lidarbroadcast")
 
 def mapcallBack(data):
 	global lockfilepath
@@ -147,6 +150,8 @@ def sendGlobalPath(path):
 	oculusprimesocket.sendString(s)
 
 def publishinitialpose(str):
+	# global docked
+	
 	s = str.split("_")
 	x = float(s[0])
 	y = float(s[1])
@@ -165,8 +170,15 @@ def publishinitialpose(str):
 	pose.pose.pose.orientation.y = quat[1]
 	pose.pose.pose.orientation.z = quat[2]
 	pose.pose.pose.orientation.w = quat[3]
-	pose.pose.covariance = [0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06853891945200942]
+
+	# if not docked: 
+		# pose.pose.covariance = [0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06853891945200942]
+	# docked = False # only skip covariance set on initial docked position
+
+	#  pose.pose.covariance = [0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06853891945200942]
 	
+	#  pose.pose.covariance = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
 	initpose_pub.publish(pose)
 		
 def publishgoal(str):
@@ -205,14 +217,23 @@ def sendScan():
 	global scanpoints
 	
 	s = "state rosscan "
-	
-	step = 8 
 	size = len(scanpoints)
+	
+	step = 8  # vga depth cam, size typically 640
+	if (size < 600):  # xaxxon lidar
+		#  step = size/100
+		step = 2		
+
 	i = 0
 	while i < size-step:
 		s += str(round(scanpoints[i],3))+","
 		i += step
-	s += str(round(scanpoints[size-1],3))
+		
+	try:
+		s += str(round(scanpoints[size-1],3))
+	except IndexError: # rare lidar scan size error
+		oculusprimesocket.sendString("messageclients remote_nav.py IndexError")
+		
 	oculusprimesocket.sendString(s)
 
 def cleanup():
@@ -233,6 +254,19 @@ def goalcancel():
 	globalpath = []
 	recoveryrotate = False
 	
+def lidarSetParam(str):
+	global lidarclient
+	
+	if (str == "disabled"):
+		#  print("lidarSetParam " + str)
+		params = { 'lidar_enable' : 'false' }
+		lidarclient.update_configuration(params)
+	elif (str=="enabled"):
+		#  print("lidarSetParam " + str)
+		params = { 'lidar_enable' : 'true' }
+		lidarclient.update_configuration(params)
+
+	
 # main
 
 oculusprimesocket.connect()	
@@ -249,6 +283,10 @@ oculusprimesocket.sendString("state delete rosglobalpath")
 oculusprimesocket.sendString("state delete rosmapinfo")
 oculusprimesocket.sendString("state delete rosscan")
 oculusprimesocket.sendString("state delete rosgoalstatus")
+
+# oculusprimesocket.sendString("state dockstatus")
+# if oculusprimesocket.waitForReplySearch("<state> dockstatus").split()[3] == "docked":
+	# docked = True
 	
 rospy.Subscriber("map", OccupancyGrid, mapcallBack)
 rospy.Subscriber("odom", Odometry, odomCallback)
@@ -270,7 +308,8 @@ if not rospy.is_shutdown():
 lasttext = ""
 
 while not rospy.is_shutdown():
-	s = oculusprimesocket.replyBufferSearch("<state> (rosinitialpose|rossetgoal|rosgoalcancel) ")
+	
+	s = oculusprimesocket.replyBufferSearch("<state> (rosinitialpose|rossetgoal|rosgoalcancel|lidar) ")
 	if re.search("rosinitialpose", s):
 		oculusprimesocket.sendString("state delete rosinitialpose")
 		publishinitialpose(s.split()[2])
@@ -285,6 +324,10 @@ while not rospy.is_shutdown():
 	
 	elif re.search("rosgoalcancel true", s):
 		goalcancel()
+		
+	elif re.search("lidar", s):
+		lidarSetParam(s.split()[2])
+		
 		
 	t = rospy.get_time()
 	if t - lastsendinfo > sendinfodelay:
@@ -316,7 +359,7 @@ while not rospy.is_shutdown():
 				
 				#### recovery routine
 
-				oculusprimesocket.sendString("messageclients recovery rotation")
+				oculusprimesocket.sendString("messageclients navigation recovery")
 				oculusprimesocket.clearIncoming()
 				
 				# cancel goal, clear costmaps, generally reset as much as possible
@@ -333,14 +376,19 @@ while not rospy.is_shutdown():
 				oculusprimesocket.sendString("state rosgoalcancel") 
 				s = oculusprimesocket.waitForReplySearch("<state> rosgoalcancel") 
 				if re.search("rosgoalcancel true", s):
+					oculusprimesocket.sendString("user cancelled nav goal")
 					goalcancel()
 					continue
 			
 				# resend pose, full rotate
-				publishinitialpose(str(xoffst+odomx)+"_"+str(yoffst+odomy)+"_"+str(thoffst+odomth))
+				# publishinitialpose(str(xoffst+odomx)+"_"+str(yoffst+odomy)+"_"+str(thoffst+odomth))
 				# oculusprimesocket.sendString("right 360")
+				# oculusprimesocket.waitForReplySearch("<state> direction stop")
+				
+				# back up a bit
+				oculusprimesocket.sendString("backward 0.25")
 				oculusprimesocket.waitForReplySearch("<state> direction stop")
-
+				
 				# wait for cpu
 				rospy.sleep(2) 
 				oculusprimesocket.sendString("waitforcpu")
@@ -350,6 +398,7 @@ while not rospy.is_shutdown():
 				oculusprimesocket.sendString("state rosgoalcancel") 
 				s = oculusprimesocket.waitForReplySearch("<state> rosgoalcancel") 
 				if re.search("rosgoalcancel true", s):
+					oculusprimesocket.sendString("user cancelled nav goal")
 					goalcancel()
 					continue
 

@@ -7,15 +7,13 @@
 		required="true" /> 
 
 
-	<!-- depth cam-->
-	<node pkg="tf" type="static_transform_publisher" name="base_to_xtion_broadcaster" 
-		args="-0.054 0.048 0.29 0 0 0 /base_link /camera_depth_frame 100" />
-
-	<include file="$(find oculusprime)/launch/fake_laser.launch" >
-		<arg name="skipframes" value="2" />
-		<arg name="floorplane_scan_enable" value="true" />
-		<arg name="use_device_time" value="false" />
-	</include>
+	<!-- lidar -->
+	<node pkg="tf2_ros" type="static_transform_publisher" name="base_to_lidar_broadcaster" 
+		args="-0.03 0.0 0.3 0 0 0 base_link camera_depth_frame" /> 
+	<node pkg="xaxxon_openlidar" type="lidarbroadcast.py" name="lidarbroadcast" required="true" output="screen"
+		clear_params="true"> 
+		<param name="frame_id" value="camera_depth_frame"/> 
+	</node>	
 
 	
 	<arg name="map" default="map.yaml" />
