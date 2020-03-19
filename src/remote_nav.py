@@ -49,7 +49,8 @@ goal = None
 turnspeed = 100
 secondspertwopi = 4.2 # calibration, automate? (do in java, faster)
 # docked = False
-lidarclient = dynamic_reconfigure.client.Client("lidarbroadcast")
+lidarclient = None
+
 
 def mapcallBack(data):
 	global lockfilepath
@@ -256,6 +257,9 @@ def goalcancel():
 	
 def lidarSetParam(str):
 	global lidarclient
+	
+	if lidarclient == None:
+		lidarclient = dynamic_reconfigure.client.Client("lidarbroadcast")
 	
 	if (str == "disabled"):
 		#  print("lidarSetParam " + str)
