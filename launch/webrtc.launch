@@ -1,0 +1,21 @@
+<launch>
+
+	<arg name="audiodevice" default="" />
+    <arg name="videowidth" default="" />
+    <arg name="videoheight" default="" />
+    <arg name="videobitrate" default="" />
+    <arg name="peerid" default=""/>
+    <arg name="webrtcserver" default=""/>
+    <arg name="turnserverlogin" default=""/>
+    <arg name="turnserverport" default=""/>
+    <node name="webrtc" pkg="oculusprime" type="webrtc" output="screen" 
+	      args="$(arg peerid) $(arg audiodevice) $(arg videowidth) 
+		    $(arg videoheight) $(arg videobitrate) $(arg webrtcserver)
+		    $(arg turnserverlogin) $(arg turnserverport)" 
+	      respawn="true">
+	<remap from="image_raw" to="/usb_cam/image_raw"/>
+    </node>
+    
+    <node pkg="oculusprime" type="webrtc_status_listener.py" name="webrtc_status_listener" required="true" output="screen" />
+
+</launch>

@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(oculusprime)
 
+# Compile as C++11, supported in ROS Kinetic and newer
+ add_compile_options(-std=c++11)
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -8,9 +11,17 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   nodelet pcl_ros roscpp visualization_msgs dynamic_reconfigure
+  image_transport
 )
 find_package(Boost REQUIRED)
 find_package(PCL)
+
+pkg_check_modules(gst gstreamer-1.0)
+pkg_check_modules(gstapp gstreamer-app-1.0)
+pkg_check_modules(gstsdp gstreamer-sdp-1.0)
+pkg_check_modules(gstwebrtc gstreamer-webrtc-1.0)
+pkg_check_modules(libsoup libsoup-2.4)
+pkg_check_modules(jsonglib json-glib-1.0)
 
 generate_dynamic_reconfigure_options(config/Follower.cfg)
 
@@ -85,10 +96,10 @@ generate_dynamic_reconfigure_options(config/Follower.cfg)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS
-  LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS nodelet pcl_ros roscpp visualization_msgs dynamic_reconfigure
-  DEPENDS Boost PCL
+  # INCLUDE_DIRS
+  # LIBRARIES ${PROJECT_NAME}
+  # CATKIN_DEPENDS nodelet pcl_ros roscpp visualization_msgs dynamic_reconfigure
+  # DEPENDS Boost PCL
 )
 
 ###########
@@ -101,8 +112,25 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  
   ${PCL_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
+  
+  ${gst_INCLUDE_DIRS}
+  ${gstapp_INCLUDE_DIRS}
+  ${gstsdp_INCLUDE_DIRS}
+  ${gstwebrtc_INCLUDE_DIRS}
+  ${libsoup_INCLUDE_DIRS}
+  ${jsonglib_INCLUDE_DIRS}
+)
+
+link_directories(
+	${libsoup_LIBRARY_DIRS}
+	${jsonglib_LIBRARY_DIRS}
+	${gstsdp_LIBRARY_DIRS}
+	${gstapp_LIBRARY_DIRS}
+	${gstwebrtc_LIBRARY_DIRS}
+	${gst_LIBRARY_DIRS}
 )
 
 ## Declare a cpp library
@@ -120,6 +148,21 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
+)
+
+
+add_executable(webrtc
+  src/webrtc.cpp
+)
+
+target_link_libraries(webrtc
+	${catkin_LIBRARIES}
+	${libsoup_LIBRARIES}
+	${jsonglib_LIBRARIES}
+	${gstsdp_LIBRARIES}
+	${gstapp_LIBRARIES}
+	${gstwebrtc_LIBRARIES}
+	${gst_LIBRARIES}
 )
 
 #############
