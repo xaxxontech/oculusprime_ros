@@ -3,6 +3,7 @@
 	<arg name="device" default="/dev/video0" />
 	<arg name="width" default="640" />
 	<arg name="height" default="480" />
+	<arg name="fps" default="15" />
 
 	<node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" required="true" >
 		<param name="video_device" value="$(arg device)" />
@@ -11,6 +12,7 @@
 		<param name="pixel_format" value="yuyv" />
 		<param name="camera_frame_id" value="usb_cam" />
 		<param name="io_method" value="mmap"/>
+		<param name="framerate" value="$(arg fps)"/>
 	</node>
 
 </launch>
