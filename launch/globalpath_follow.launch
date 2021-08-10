@@ -8,13 +8,11 @@
 
 
 	<!-- depth cam-->
-	<node pkg="tf2_ros" type="static_transform_publisher" name="base_to_xtion_broadcaster" 
-		args="-0.054 0.048 0.29 0 0 0 base_link camera_depth_frame" />
-
-	<include file="$(find oculusprime)/launch/fake_laser.launch" >
+<include file="$(find oculusprime)/launch/fake_laser.launch" >
 		<arg name="skipframes" value="2" />
-		<arg name="floorplane_scan_enable" value="false" />
+<!--
 		<arg name="use_device_time" value="false" />
+-->
 	</include>
 
 	

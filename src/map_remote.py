@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy, tf
 import os, struct, re
@@ -6,10 +6,6 @@ from nav_msgs.msg import OccupancyGrid
 from sensor_msgs.msg import LaserScan
 import oculusprimesocket
 
-"""
-
-
-"""
 
 lockfilepath = "/run/shm/map.raw.lock"
 scannum = 0
@@ -27,7 +23,7 @@ def mapcallBack(data):
 	
 	open(lockfilepath, 'w') # creates lockfile
 	 
-	framefile = open(framefilepath, 'w')
+	framefile = open(framefilepath, 'wb')
 	packeddata = struct.pack('%sb' %len(data.data), *data.data)
 	framefile.write(packeddata)
 	framefile.close()

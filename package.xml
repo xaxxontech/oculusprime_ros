@@ -33,7 +33,6 @@
   <run_depend>std_msgs</run_depend>
   <run_depend>move_base</run_depend>
   <run_depend>map_server</run_depend>
-  <run_depend>depthimage_to_laserscan</run_depend>
   <run_depend>amcl</run_depend>
   <run_depend>openni2_launch</run_depend>
   <run_depend>openni2_camera</run_depend>

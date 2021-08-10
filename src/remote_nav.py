@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy, tf
 import os, struct, re
@@ -62,7 +62,7 @@ def mapcallBack(data):
 	
 	open(lockfilepath, 'w') # creates lockfile
 	 
-	framefile = open(framefilepath, 'w')
+	framefile = open(framefilepath, 'wb')
 	packeddata = struct.pack('%sb' %len(data.data), *data.data)
 	framefile.write(packeddata)
 	framefile.close()

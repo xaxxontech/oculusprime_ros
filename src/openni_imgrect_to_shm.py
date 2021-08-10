@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3b
 
 import rospy
 import os
@@ -30,7 +30,7 @@ def imgrect_callBack(data):
 	
 	open(lockfilepath, 'w') # creates lockfile
 	 
-	framefile = open(framefilepath, 'w')
+	framefile = open(framefilepath, 'wb')
 	framefile.write(data.data)
 	framefile.close()
 

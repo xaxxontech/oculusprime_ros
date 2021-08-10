@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 on any new /initialpose, do full rotation, then delay (to hone in amcl)

@@ -1,21 +1,23 @@
 <launch>
 
-  <!-- Launch the OpenNI drivers -->
+	<node pkg="tf2_ros" type="static_transform_publisher" name="base_to_astra_broadcaster" 
+		args="-0.054 0.048 0.29 0 0 0 base_link camera_depth_frame" />
 
 	<arg name="camera"      default="camera"/>
-	<arg name="publish_tf"  default="false"/>
-	<arg name="skipframes"      default="0"/>
+	<arg name="publish_tf"  default="true"/>
+	<arg name="skipframes"      default="2"/>
 	<arg name="depth_registration"  default="false"/>
+<!--
 	<arg name="use_device_time" default="false"/>
+-->
 	<arg     if="$(arg depth_registration)" name="depth" value="depth_registered" />
 	<arg unless="$(arg depth_registration)" name="depth" value="depth" />
 	<param name="/camera/driver/data_skip" value="$(arg skipframes)" />
-	<param name="/camera/driver/use_device_time" value="$(arg use_device_time)" />
-
 <!--
-	<include file="$(find openni2_launch)/launch/openni2.launch" >
+	<param name="/camera/driver/use_device_time" value="$(arg use_device_time)" />
 -->
-	<include file="$(find astra_launch)/launch/astrapro.launch" >
+
+	<include file="$(find astra_camera)/launch/astrapro.launch" >
 		<arg name="publish_tf" value="$(arg publish_tf)"/>
 		    <arg name="rgb_processing" value="false" />
 			<arg name="depth_registration" value="false" /> 
@@ -23,28 +25,8 @@
 			
 	</include>
 
+	<!-- depthcamtoscan-->
+	<node pkg="oculusprime" type="depthcamtoscan" name="depthcamtoscan" output="screen" required="true"/>
 
-
-  <!-- Run the depthimage_to_laserscan node -->
-
-	<arg name="scan_topic" default="scan"/>
-	<arg name = "floorplane_scan_enable" default="false"/>
-	<arg name = "horiz_angle_offset" default="-0.031416"/>
-    <node pkg="nodelet" type="nodelet" name="depthimage_to_laserscan" args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet $(arg camera)/$(arg camera)_nodelet_manager">
-      <!-- Pixel rows to use to generate the laserscan. For each column, the scan will
-           return the minimum value for those pixels centered vertically in the image. -->
-      <param name="scan_height" value="5"/> <!-- was 10 --> 
-      <param name="output_frame_id" value="$(arg camera)_depth_frame"/>
-      <param name="range_min" value="0.45"/>
-      <param name="floorplane_scan_enable" value="$(arg floorplane_scan_enable)" />
-      <param name="horiz_angle_offset" value="$(arg horiz_angle_offset)" />
-      <remap from="image" to="$(arg camera)/$(arg depth)/image_raw"/>
-      <remap from="scan" to="$(arg scan_topic)"/>
-      <!-- Somehow topics here get prefixed by "$(arg camera)" when not inside an app namespace,
-           so in this case "$(arg scan_topic)" must provide an absolute topic name (issue #88).
-           Probably is a bug in the nodelet manager: https://github.com/ros/nodelet_core/issues/7 -->
-      <remap from="$(arg camera)/image" to="$(arg camera)/$(arg depth)/image_raw"/>
-      <remap from="$(arg camera)/scan" to="$(arg scan_topic)"/>
-    </node>
 
 </launch>

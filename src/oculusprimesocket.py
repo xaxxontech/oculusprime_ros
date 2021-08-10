@@ -1,5 +1,5 @@
-# oculusprimesocket.py module
-# make tcp socket connection with Oculus Prime robot, relay commands and messages 
+# PYTHON3 oculusprimesocket.py module
+# make tcp socket connection with xaxxon robot, relay commands and messages 
 
 """make tcp socket connection with Oculus Prime Server Application
 provide functions for relay of commands and messages"""
@@ -25,8 +25,8 @@ def sendString(s):
 
 	global connected
 	try:
-		sock.sendall(s+"\r\n")
-	except socket.error: 
+		sock.sendall((s+"\r\n").encode())
+	except OSError: 
 		connected = False
 		if reconnect:
 			waitForConnect()
@@ -57,7 +57,7 @@ def waitForReplySearch(pattern):
 					
 			if re.search(pattern, servermsg, re.IGNORECASE): 
 				break
-		except socket.error: 
+		except OSError: 
 			connected = False
 			return ""
 	return servermsg # return the line containing pattern
@@ -69,8 +69,10 @@ def clearIncoming():
 	sock.setblocking(False)
 	while True:
 		try:
-			sockfileIO.readline()
-		except socket.error: # assuming EOF reached, reading buffer complete
+			if not sockfileIO.readline():
+				break
+		except OSError: 
+			connected = False
 			break
 			
 	sock.setblocking(True)
@@ -94,8 +96,13 @@ def replyBufferSearch(pattern):
 			if re.search(pattern, servermsg, re.IGNORECASE): 
 				result = servermsg # return the line containing pattern
 				break
-		except socket.error: # assuming EOF reached, reading buffer complete
+		except OSError: 
+			connected = False
 			break
+			
+		if not servermsg:
+			break
+			
 	sock.setblocking(True)
 	return result  
 
@@ -112,7 +119,7 @@ def connect():
 	
 	try:
 		sock.connect((host, port))
-	except socket.error:
+	except OSError:
 		connected = False
 		if reconnect:
 			waitForConnect()

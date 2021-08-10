@@ -8,13 +8,15 @@ project(oculusprime)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  rospy
-  std_msgs
-  nodelet pcl_ros roscpp visualization_msgs dynamic_reconfigure
-  image_transport
+	roscpp
+	rospy
+	std_msgs
+	image_transport
+	image_geometry
+	sensor_msgs
 )
-find_package(Boost REQUIRED)
-find_package(PCL)
+
+find_package(PkgConfig)
 
 pkg_check_modules(gst gstreamer-1.0)
 pkg_check_modules(gstapp gstreamer-app-1.0)
@@ -23,7 +25,6 @@ pkg_check_modules(gstwebrtc gstreamer-webrtc-1.0)
 pkg_check_modules(libsoup libsoup-2.4)
 pkg_check_modules(jsonglib json-glib-1.0)
 
-generate_dynamic_reconfigure_options(config/Follower.cfg)
 
 
 ## System dependencies are found with CMake's conventions
@@ -112,10 +113,6 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  
-  ${PCL_INCLUDE_DIRS}
-  ${Boost_INCLUDE_DIRS}
-  
   ${gst_INCLUDE_DIRS}
   ${gstapp_INCLUDE_DIRS}
   ${gstsdp_INCLUDE_DIRS}
@@ -133,24 +130,6 @@ link_directories(
 	${gst_LIBRARY_DIRS}
 )
 
-## Declare a cpp library
-add_library(${PROJECT_NAME} src/follower.cpp)
-
-
-## Declare a cpp executable
-# add_executable(oculusprime_node src/oculusprime_node.cpp)
-
-## Add cmake target dependencies of the executable/library
-## as an example, message headers may need to be generated before nodes
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
-
-## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
-)
-
-
 add_executable(webrtc
   src/webrtc.cpp
 )
@@ -165,6 +144,13 @@ target_link_libraries(webrtc
 	${gst_LIBRARIES}
 )
 
+add_executable(depthcamtoscan
+  src/depthcamtoscan.cpp
+)
+target_link_libraries(depthcamtoscan
+	${catkin_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############
@@ -174,13 +160,13 @@ target_link_libraries(webrtc
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-install(PROGRAMS
+# install(PROGRAMS
   # scripts/my_python_script
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+  # DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 
 ## Mark executables and/or libraries for installation
-install(TARGETS ${PROJECT_NAME} 
+install(TARGETS webrtc
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

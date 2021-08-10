@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy, oculusprimesocket, math, re, thread, time
 from geometry_msgs.msg import Twist
