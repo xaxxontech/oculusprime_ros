@@ -9,10 +9,9 @@
 ros::Publisher pub;
 
 double camFOVy;
-const float image_ignore_ratio_ = 0.0; // 0.675; // top of image ignore this ratio
-const float frame_z_ = 0.29; // z height of camera off floor
-const double floorplane_obstacle_height_ = 0.04; // 0.075
-const double floorplane_cliff_depth_ = 0.04; // 0.075
+const float frame_z_ = 0.29; // z height of camera off floor     TODO: config/arg set
+const double floorplane_obstacle_height_ = 0.04; // 0.075  TODO: config/arg set
+const double floorplane_cliff_depth_ = 0.04; // 0.075   TODO: config/arg set
 
 bool calibrationcomplete = false;
 int calibrationscancount = 0;
@@ -26,7 +25,9 @@ int framecount = 0;
 const int DROPINITFRAMES = 30;
 const float CALIBCONST = -0.02; // horiz_angle_offset_ distortion comp
 const int SKIPY = 2;
-const int SKIPX = 2;
+const int SKIPX = 1;
+const float RANGE_MIN = 0.4;   // TODO: config/arg set
+const float RANGE_MAX = 6.0;    // TODO: config/arg set
 
 
 bool use_point(const float new_value, const float old_value, 
@@ -116,8 +117,8 @@ sensor_msgs::LaserScanPtr get_scan_msg(const sensor_msgs::ImageConstPtr& depth_m
 	scan_msg->angle_increment = (scan_msg->angle_max - scan_msg->angle_min) / (depth_msg->width - 1);
 	scan_msg->time_increment = 0.0;
 	scan_msg->scan_time = 0.0;
-	scan_msg->range_min = 0.4;
-	scan_msg->range_max = 3.0;
+	scan_msg->range_min = RANGE_MIN;
+	scan_msg->range_max = RANGE_MAX;
 	
 	// Calculate and fill the ranges
 	uint32_t ranges_size = depth_msg->width;
@@ -134,7 +135,6 @@ void imageCb(const sensor_msgs::ImageConstPtr& depth_msg,
 	// skip initial frames to ensure stable image, good calibration    
 	if (framecount < DROPINITFRAMES) {
 		framecount++;
-		// std::cout << "skip init frame: " << framecount << "\n";
 		return;
 	}
 	
@@ -155,10 +155,6 @@ void imageCb(const sensor_msgs::ImageConstPtr& depth_msg,
 	const float constant_y = unit_scaling / cam_model_.fy();
 
 	const int row_step = depth_msg->step / sizeof(uint16_t);
-
-	const int vmax = depth_msg->height;
-	const int vfpstart = (int) (depth_msg->height * image_ignore_ratio_);
-
 
 	float hrzangleoffst;
 	double fpobstacleheight;
@@ -184,9 +180,8 @@ void imageCb(const sensor_msgs::ImageConstPtr& depth_msg,
 	// iterate through image pixels, multiple on initial frames for calibration, once only after
 	do {
 		const uint16_t* depth_row = reinterpret_cast<const uint16_t*>(&depth_msg->data[0]);
-		depth_row += vfpstart * row_step; // Offset to vfpstart
 		
-		for (int v = vfpstart; v < vmax; v++, depth_row += row_step) { 
+		for (int v = 0; v < depth_msg->height; v++, depth_row += row_step) { 
 
 			if ( !(v % SKIPY) ) continue; // && !framecalibrated // floor plane skip % of vert pixels reduce cpu
 
@@ -272,10 +267,10 @@ int main(int argc, char** argv)
 	ros::init(argc, argv, "depthcamtoscan");
 	ros::NodeHandle nh;
 
-	pub = nh.advertise<sensor_msgs::LaserScan>("scan_cam", 1);
+	pub = nh.advertise<sensor_msgs::LaserScan>("scan", 1);  // TODO: config/arg set
 
-	image_transport::ImageTransport it(nh);
-	image_transport::CameraSubscriber sub = it.subscribeCamera("/camera/depth/image_rect_raw", 1, imageCb);
+	image_transport::ImageTransport it(nh);  
+	image_transport::CameraSubscriber sub = it.subscribeCamera("/camera/depth/image_rect_raw", 1, imageCb);   // TODO: config/arg set
 
 	ros::spin();
 }
