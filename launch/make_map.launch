@@ -1,4 +1,3 @@
-
 <launch>
 	<param name="robot_description" textfile="$(find oculusprime)/description/oculusprime.urdf" />
 
@@ -14,7 +13,7 @@
 	<arg name="publish_tf"  default="true"/>
 	<arg name="skipframes"      default="1"/>
 	<arg name="depth_registration"  default="false"/>
-	<arg name="use_device_time" default="false"/>
+	<arg name="use_device_time" default="true"/>
 	<arg     if="$(arg depth_registration)" name="depth" value="depth_registered" />
 	<arg unless="$(arg depth_registration)" name="depth" value="depth" />
 	<param name="/camera/driver/data_skip" value="$(arg skipframes)" />
