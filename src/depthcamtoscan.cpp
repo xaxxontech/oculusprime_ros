@@ -27,7 +27,7 @@ const float CALIBCONST = -0.02; // horiz_angle_offset_ distortion comp
 const int SKIPY = 2;
 const int SKIPX = 1;
 const float RANGE_MIN = 0.4;   // TODO: config/arg set
-const float RANGE_MAX = 6.0;    // TODO: config/arg set
+const float RANGE_MAX = 5.0;    // TODO: config/arg set
 
 
 bool use_point(const float new_value, const float old_value, 
