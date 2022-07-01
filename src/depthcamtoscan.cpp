@@ -27,7 +27,8 @@ const float CALIBCONST = -0.02; // horiz_angle_offset_ distortion comp
 const int SKIPY = 2;
 const int SKIPX = 1;
 const float RANGE_MIN = 0.4;   // TODO: config/arg set
-const float RANGE_MAX = 5.0;    // TODO: config/arg set
+const float RANGE_MAX_HORIZONTAL = 6.0;    // TODO: config/arg set
+const float RANGE_MAX_NON_HORIZONTAL = 3.0;    // TODO: config/arg set
 
 
 bool use_point(const float new_value, const float old_value, 
@@ -118,7 +119,7 @@ sensor_msgs::LaserScanPtr get_scan_msg(const sensor_msgs::ImageConstPtr& depth_m
 	scan_msg->time_increment = 0.0;
 	scan_msg->scan_time = 0.0;
 	scan_msg->range_min = RANGE_MIN;
-	scan_msg->range_max = RANGE_MAX;
+	scan_msg->range_max = RANGE_MAX_HORIZONTAL;
 	
 	// Calculate and fill the ranges
 	uint32_t ranges_size = depth_msg->width;
@@ -155,6 +156,8 @@ void imageCb(const sensor_msgs::ImageConstPtr& depth_msg,
 	const float constant_y = unit_scaling / cam_model_.fy();
 
 	const int row_step = depth_msg->step / sizeof(uint16_t);
+	const int vhorizmax = (int) (depth_msg->height/2) + 5;
+	const int vhorizmin = (int) (depth_msg->height/2) - 5;
 
 	float hrzangleoffst;
 	double fpobstacleheight;
@@ -185,7 +188,7 @@ void imageCb(const sensor_msgs::ImageConstPtr& depth_msg,
 
 			if ( !(v % SKIPY) ) continue; // && !framecalibrated // floor plane skip % of vert pixels reduce cpu
 
-			for (int u = 0; u < (int) depth_msg->width; u+=SKIPX) {  // SKIPX = save cpu, and closer to lidar density anyway
+			for (int u = 0; u < (int) depth_msg->width; u+=SKIPX) {  
 
 				uint16_t depth = depth_row[u];
 
@@ -214,9 +217,14 @@ void imageCb(const sensor_msgs::ImageConstPtr& depth_msg,
 					r = sqrt(pow(x, 2.0) + pow(z, 2.0));
 				}
 				
+				// if y is within horiz ctr range (like lidar), use far range max
+				// if not, use closer range
+				float rangemax = RANGE_MAX_NON_HORIZONTAL;
+				if (v <= vhorizmax && v >= vhorizmin) rangemax = RANGE_MAX_HORIZONTAL;
+				
 			
 				// Determine if this point should be used.
-				if(use_point(r, scan_msg->ranges[index], scan_msg->range_min, scan_msg->range_max)){
+				if(use_point(r, scan_msg->ranges[index], RANGE_MIN, rangemax)){
 					scan_msg->ranges[index] = r;
 				}
 				
